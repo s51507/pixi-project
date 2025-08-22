@@ -1,0 +1,15 @@
+skeleton.png
+size:646,283
+filter:Linear,Linear
+pma:true
+Walk_1 (1)
+bounds:2,4,200,277
+Walk_1 (2)
+bounds:407,8,201,273
+offsets:0,0,201,274
+Walk_1 (3)
+bounds:204,7,201,274
+rocket_shadow
+bounds:610,2,279,34
+offsets:4,2,287,38
+rotate:90
