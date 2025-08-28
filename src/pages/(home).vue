@@ -141,12 +141,15 @@
             </RouterLink>
 
             <!-- 整合場景 -->
-            <div class="group bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-lg rounded-3xl p-8 border border-emerald-400/30 shadow-2xl relative overflow-hidden">
-              <div class="absolute top-4 right-4 bg-yellow-500/20 text-yellow-300 px-3 py-1.5 rounded-full text-sm font-semibold">
-                🚧 即將推出
+            <RouterLink 
+              to="/integrated-scene"
+              class="group bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-lg rounded-3xl p-8 border border-emerald-400/30 hover:border-emerald-300/50 transition-all duration-300 hover:scale-[1.02] shadow-2xl block"
+            >
+              <div class="absolute top-4 right-4 bg-green-500/20 text-green-300 px-3 py-1.5 rounded-full text-sm font-semibold">
+                ✨ 全新上線
               </div>
               <div class="flex items-start gap-6">
-                <div class="text-6xl opacity-50">🎬</div>
+                <div class="text-6xl group-hover:scale-110 transition-transform duration-300">🎬</div>
                 <div class="flex-1 text-left">
                   <h4 class="text-2xl font-bold mb-3 text-emerald-300">整合場景展示</h4>
                   <p class="text-slate-300 text-base mb-4 leading-relaxed">
@@ -158,12 +161,12 @@
                     <span class="px-3 py-1.5 bg-blue-500/30 rounded-full text-sm text-blue-300 font-medium">🎵 音效同步</span>
                     <span class="px-3 py-1.5 bg-purple-500/30 rounded-full text-sm text-purple-300 font-medium">⏰ 時間軸控制</span>
                   </div>
-                  <div class="inline-flex items-center gap-2 text-emerald-400/50 font-semibold text-lg">
-                    敬請期待 <span>🔮</span>
+                  <div class="inline-flex items-center gap-2 text-emerald-400 font-semibold text-lg">
+                    立即體驗 <span class="group-hover:translate-x-2 transition-transform duration-300">→</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </RouterLink>
           </div>
         </div>
 
@@ -231,8 +234,33 @@
         </div>
       </div>
 
+      <!-- 開發者鏈接 -->
+      <div class="text-center mt-12">
+        <div class="inline-flex items-center gap-6 bg-slate-800/50 backdrop-blur-lg rounded-2xl px-6 py-4 border border-white/10">
+          <span class="text-slate-400 text-sm">🔧 開發者工具：</span>
+          <RouterLink 
+            to="/refactored-demo" 
+            class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+          >
+            重構演示頁面 →
+          </RouterLink>
+          <RouterLink 
+            to="/assets-gallery" 
+            class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+          >
+            資源庫 →
+          </RouterLink>
+          <RouterLink 
+            to="/jump-test" 
+            class="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+          >
+            跳躍測試 →
+          </RouterLink>
+        </div>
+      </div>
+
       <!-- 底部信息 -->
-      <div class="text-center mt-12 text-slate-400 text-sm">
+      <div class="text-center mt-8 text-slate-400 text-sm">
         <p>使用現代化技術棧構建的 Spine 動畫展示項目</p>
         <p class="mt-2">支援完整的骨骼動畫、時間軸控制和實時渲染</p>
       </div>

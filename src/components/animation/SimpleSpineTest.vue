@@ -635,7 +635,7 @@ function startFloating(): void {
   
   const baseX = (props.width / 2) + Number(offsetX.value)
   const baseY = (props.height / 2) + Number(offsetY.value)
-  let startTime = Date.now()
+  const startTime = Date.now()
   
   function animate() {
     if (!isFloating.value || !spine) return
