@@ -3,12 +3,21 @@
  * 用於追蹤 Spine 動畫中骨骼的移動並同步文字位置
  */
 
+export interface TextOffset {
+  /** X 軸偏移（左右，正值向右，負值向左） */
+  x?: number
+  /** Y 軸偏移（上下，正值向下，負值向上） */
+  y?: number
+}
+
 export interface BoneTrackingOptions {
   /** 目標文字物件 */
   textObject: any
   /** Spine 物件 */
   spine: any
-  /** 文字相對於骨骼的 Y 軸偏移 */
+  /** 文字相對於骨骼的偏移量 */
+  textOffset?: TextOffset
+  /** 文字相對於骨骼的 Y 軸偏移（向後兼容，建議使用 textOffset） */
   textOffsetY?: number
   /** 是否啟用調試日誌 */
   enableDebugLog?: boolean
@@ -41,8 +50,19 @@ export class BoneTracker {
   private initialBoneY = 0
 
   constructor(options: BoneTrackingOptions) {
+    // 處理向後兼容性：如果只提供了 textOffsetY，轉換為 textOffset
+    const textOffset = options.textOffset || {
+      x: 0,
+      y: options.textOffsetY || 60
+    }
+    
     this.options = {
-      textOffsetY: 60,
+      textOffset: {
+        x: 0,
+        y: 60,
+        ...textOffset
+      },
+      textOffsetY: textOffset.y || 60, // 保持向後兼容
       enableDebugLog: true,
       debugLogFrequency: 0.3,
       ...options
@@ -294,7 +314,47 @@ export class BoneTracker {
    * 更新選項
    */
   public updateOptions(newOptions: Partial<BoneTrackingOptions>): void {
+    // 處理 textOffset 的更新
+    if (newOptions.textOffset) {
+      this.options.textOffset = {
+        ...this.options.textOffset,
+        ...newOptions.textOffset
+      }
+    }
+    
+    // 處理向後兼容的 textOffsetY
+    if (newOptions.textOffsetY !== undefined) {
+      this.options.textOffsetY = newOptions.textOffsetY
+      this.options.textOffset!.y = newOptions.textOffsetY
+    }
+    
     this.options = { ...this.options, ...newOptions }
+  }
+
+  /**
+   * 更新文字偏移量
+   */
+  public updateTextOffset(offset: TextOffset): void {
+    this.options.textOffset = {
+      ...this.options.textOffset,
+      ...offset
+    }
+    
+    // 同步更新 textOffsetY 以保持向後兼容
+    if (offset.y !== undefined) {
+      this.options.textOffsetY = offset.y
+    }
+    
+    if (this.options.enableDebugLog) {
+      console.log(`📍 文字偏移量已更新: X=${this.options.textOffset?.x || 0}, Y=${this.options.textOffset?.y || 0}`)
+    }
+  }
+
+  /**
+   * 獲取當前文字偏移量
+   */
+  public getTextOffset(): TextOffset {
+    return { ...this.options.textOffset }
   }
 
   /**
@@ -350,9 +410,12 @@ export class BoneTracker {
       const canvasX = this.options.spine.x + (worldX * this.options.spine.scale.x)
       const canvasY = this.options.spine.y + (worldY * this.options.spine.scale.y)
 
-      // 更新文字位置
-      this.options.textObject.x = canvasX
-      this.options.textObject.y = canvasY + this.options.textOffsetY
+      // 應用偏移量並更新文字位置
+      const offsetX = this.options.textOffset?.x || 0
+      const offsetY = this.options.textOffset?.y || this.options.textOffsetY || 60
+      
+      this.options.textObject.x = canvasX + offsetX
+      this.options.textObject.y = canvasY + offsetY
 
       // 檢查位置變化
       const deltaX = Math.abs(boneX - this.initialBoneX)

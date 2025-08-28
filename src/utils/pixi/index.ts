@@ -20,6 +20,13 @@ export * from './effects'
 // 日誌相關
 export * from './logger'
 
+// 文字管理相關
+export * from './text'
+export * from './textFollower'
+
+// 骨骼追蹤相關
+export * from './boneTracker'
+
 // 場景管理相關
 export * from './scene'
 export * from './background'
@@ -51,3 +58,22 @@ export type {
   ShakeConfig, 
   EffectState 
 } from './effects'
+
+export type { 
+  TextConfig, 
+  TextTransform, 
+  CreateTextResult 
+} from './text'
+
+export type { 
+  TextFollowerConfig, 
+  TextFollowerResult 
+} from './textFollower'
+
+export type { 
+  BoneInfo, 
+  MovingBoneDetectionResult, 
+  BoneTrackingOptions, 
+  BoneTracker,
+  TextOffset 
+} from './boneTracker'

@@ -37,12 +37,124 @@
             <div :class="['px-3 py-1 rounded-full text-sm font-medium', isBoneTracking ? 'bg-pink-600' : 'bg-gray-600']">
               🦴 骨骼追蹤: {{ isBoneTracking ? '啟用' : '停用' }}
             </div>
-          </div>
+              </div>
           <div class="text-sm text-gray-300">
             軌道追蹤系統
             </div>
           </div>
         </div>
+
+      <!-- 文字設定 -->
+      <div v-if="loaded" class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-6">
+        <h2 class="text-xl font-semibold mb-4">📝 文字設定</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">自定義文字內容：</label>
+            <div class="flex gap-3">
+              <input 
+                v-model="customText"
+                @input="updateTextContent"
+                type="text" 
+                placeholder="輸入要顯示的文字..."
+                class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+              <button
+                @click="resetTextContent"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors font-medium"
+              >
+                🔄 重置
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+              當前顯示：<span class="text-yellow-300 font-medium">{{ currentDisplayText }}</span>
+            </p>
+          </div>
+
+          <!-- 文字偏移量控制 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-3">文字偏移量設置：</label>
+            <div class="grid grid-cols-2 gap-4">
+              <!-- X 軸偏移 (左右) -->
+              <div>
+                <label class="block text-xs text-gray-400 mb-2">
+                  X 軸偏移 (左右): {{ textOffsetX }}px
+                </label>
+                <input 
+                  v-model="textOffsetX"
+                  @input="updateTextOffset"
+                  type="range" 
+                  min="-100" 
+                  max="100" 
+                  step="5"
+                  class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                >
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>← 左 100px</span>
+                  <span>右 100px →</span>
+                </div>
+              </div>
+
+              <!-- Y 軸偏移 (上下) -->
+              <div>
+                <label class="block text-xs text-gray-400 mb-2">
+                  Y 軸偏移 (上下): {{ textOffsetY }}px
+                </label>
+                <input 
+                  v-model="textOffsetY"
+                  @input="updateTextOffset"
+                  type="range" 
+                  min="-100" 
+                  max="100" 
+                  step="5"
+                  class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                >
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>↑ 上 100px</span>
+                  <span>下 100px ↓</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 偏移量預設按鈕 -->
+            <div class="mt-3 flex gap-2 flex-wrap">
+              <button
+                @click="setTextOffsetPreset('top')"
+                class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                頭頂
+              </button>
+              <button
+                @click="setTextOffsetPreset('bottom')"
+                class="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                腳下
+              </button>
+              <button
+                @click="setTextOffsetPreset('left')"
+                class="px-3 py-1 text-xs bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+              >
+                左側
+              </button>
+              <button
+                @click="setTextOffsetPreset('right')"
+                class="px-3 py-1 text-xs bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+              >
+                右側
+              </button>
+              <button
+                @click="setTextOffsetPreset('center')"
+                class="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                中心
+              </button>
+            </div>
+
+            <p class="text-xs text-gray-400 mt-2">
+              當前偏移：X={{ textOffsetX }}px, Y={{ textOffsetY }}px
+            </p>
+          </div>
+        </div>
+      </div>
 
       <!-- 動畫控制 -->
       <div v-if="loaded" class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-6">
@@ -135,6 +247,14 @@ import { RouterLink } from 'vue-router'
 import * as PIXI from 'pixi.js'
 import { Spine } from '@esotericsoftware/spine-pixi-v8'
 import { createBoneTracker as createBoneTrackerUtil, type BoneTracker } from '@/utils/pixi/boneTracker'
+import { 
+  createPixiText, 
+  addTextToStage, 
+  TEXT_PRESETS,
+  type CreateTextResult,
+  type TextConfig 
+} from '@/utils/pixi/text'
+import type { TextOffset } from '@/utils/pixi/boneTracker'
 
 // 狀態管理
 const loading = ref(true)
@@ -147,12 +267,18 @@ const status = ref('初始化...')
 const canvasRef = ref<HTMLCanvasElement>()
 let app: PIXI.Application | null = null
 let spine: any = null
-let textObject: PIXI.Text | null = null
+let textResult: CreateTextResult | null = null
 
 // 文字控制
 const textVisible = ref(false)
 const isFollowing = ref(false)
 const isBoneTracking = ref(false)
+const customText = ref('ABC')
+const currentDisplayText = ref('ABC')
+
+// 文字偏移量
+const textOffsetX = ref(0)
+const textOffsetY = ref(60)
 
 // 軌道追蹤
 let trackingAnimationId: number | null = null
@@ -336,43 +462,31 @@ function createTextObject(): void {
   try {
     console.log('📝 創建文字物件')
     
-    // 創建文字樣式
-    const textStyle = new PIXI.TextStyle({
-      fontFamily: 'Arial, sans-serif',
-      fontSize: 32,
-      fill: 0xffffff,
-      stroke: {
-        color: 0x000000,
-        width: 2
+    // 使用工具函數創建文字物件
+    const textConfig: Partial<TextConfig> = {
+      ...TEXT_PRESETS.subtitle,
+      text: customText.value
+    }
+    
+    textResult = createPixiText(textConfig, (message) => console.log(message))
+    
+    // 添加到舞台並設置初始變換
+    addTextToStage(
+      app,
+      textResult,
+      {
+        x: app.screen.width / 2,
+        y: app.screen.height / 2 - 50,
+        anchorX: 0.5,
+        anchorY: 0.5,
+        zIndex: 10,
+        visible: false
       },
-      dropShadow: {
-        color: 0x000000,
-        blur: 4,
-        angle: Math.PI / 6,
-        distance: 6,
-      },
-      wordWrap: true,
-      wordWrapWidth: 440,
-    })
+      (message) => console.log(message)
+    )
     
-    // 創建文字物件
-    textObject = new PIXI.Text({
-      text: 'ABC',
-      style: textStyle
-    })
-    
-    // 設置文字位置（在角色旁邊）
-    textObject.x = app.screen.width / 2
-    textObject.y = app.screen.height / 2 - 50  // 在角色上方一點
-    textObject.anchor.set(0.5, 0.5) // 居中對齊
-    textObject.visible = false // 預設隱藏
-    textObject.zIndex = 10 // 確保在最上層
-    
-    // 添加到舞台
-    app.stage.addChild(textObject)
-    app.stage.sortChildren() // 確保 zIndex 生效
-    
-    console.log('✅ 文字物件創建成功:', textObject.text)
+    currentDisplayText.value = textResult.textObject.text
+    console.log('✅ 文字物件創建完成')
     
   } catch (err) {
     console.error('❌ 創建文字物件失敗:', err)
@@ -383,16 +497,16 @@ function createTextObject(): void {
  * 切換文字顯示/隱藏
  */
 function toggleText(): void {
-  if (!textObject) {
+  if (!textResult) {
     console.error('❌ 文字物件不存在')
     return
   }
   
   try {
     textVisible.value = !textVisible.value
-    textObject.visible = textVisible.value
+    textResult.setVisible(textVisible.value)
     
-    console.log(`📝 文字${textVisible.value ? '顯示' : '隱藏'}:`, textObject.text)
+    console.log(`📝 文字${textVisible.value ? '顯示' : '隱藏'}:`, currentDisplayText.value)
     
   } catch (err) {
     console.error('❌ 切換文字顯示失敗:', err)
@@ -400,19 +514,96 @@ function toggleText(): void {
 }
 
 /**
+ * 更新文字內容
+ */
+function updateTextContent(): void {
+  if (!textResult) {
+    console.log('⚠️ 文字物件不存在，跳過更新')
+    return
+  }
+  
+  try {
+    // 確保輸入不為空
+    const newText = customText.value.trim() || 'ABC'
+    textResult.updateText(newText)
+    currentDisplayText.value = newText
+    
+    console.log(`📝 文字內容已更新為: "${newText}"`)
+    
+  } catch (err) {
+    console.error('❌ 更新文字內容失敗:', err)
+  }
+}
+
+/**
+ * 重置文字內容
+ */
+function resetTextContent(): void {
+  customText.value = 'ABC'
+  updateTextContent()
+  console.log('🔄 文字內容已重置為預設值')
+}
+
+/**
+ * 更新文字偏移量
+ */
+function updateTextOffset(): void {
+  if (!boneTracker) {
+    console.log('⚠️ 骨骼追蹤器不存在，跳過偏移量更新')
+    return
+  }
+  
+  try {
+    const offset: TextOffset = {
+      x: Number(textOffsetX.value),
+      y: Number(textOffsetY.value)
+    }
+    
+    boneTracker.updateTextOffset(offset)
+    console.log(`📍 文字偏移量已更新: X=${offset.x}px, Y=${offset.y}px`)
+    
+  } catch (err) {
+    console.error('❌ 更新文字偏移量失敗:', err)
+  }
+}
+
+/**
+ * 設置文字偏移量預設值
+ */
+function setTextOffsetPreset(preset: 'top' | 'bottom' | 'left' | 'right' | 'center'): void {
+  const presets = {
+    top: { x: 0, y: -60 },      // 頭頂
+    bottom: { x: 0, y: 80 },    // 腳下
+    left: { x: -50, y: 20 },    // 左側
+    right: { x: 50, y: 20 },    // 右側
+    center: { x: 0, y: 0 }      // 中心
+  }
+  
+  const selectedPreset = presets[preset]
+  textOffsetX.value = selectedPreset.x
+  textOffsetY.value = selectedPreset.y
+  
+  updateTextOffset()
+  console.log(`🎯 文字偏移量預設已應用: ${preset} (X=${selectedPreset.x}, Y=${selectedPreset.y})`)
+}
+
+/**
  * 創建骨骼追蹤器
  */
 function createBoneTracker(): void {
-  if (!spine || !textObject) {
+  if (!spine || !textResult) {
     console.error('❌ Spine 或文字物件不存在，無法創建骨骼追蹤器')
     return
   }
 
   try {
     boneTracker = createBoneTrackerUtil({
-      textObject,
+      textObject: textResult.textObject,
       spine,
-      textOffsetY: 60,
+      textOffset: {
+        x: textOffsetX.value,
+        y: textOffsetY.value
+      },
       enableDebugLog: true,
       debugLogFrequency: 0.3
     })
@@ -444,7 +635,7 @@ function toggleFollowing(): void {
  * 開始追蹤動畫軌道
  */
 function startTrackingAnimation(): void {
-  if (!spine || !textObject) {
+  if (!spine || !textResult) {
     console.error('❌ Spine 或文字物件不存在，無法開始追蹤')
     return
   }
@@ -459,7 +650,7 @@ function startTrackingAnimation(): void {
   const initialSpineY = spine.y
   
   function trackPosition() {
-    if (!spine || !textObject || !isFollowing.value) {
+    if (!spine || !textResult || !isFollowing.value) {
       console.log('⏹️ 停止追蹤：條件不滿足')
       return
     }
@@ -473,15 +664,17 @@ function startTrackingAnimation(): void {
       const spineY = spine.y
       
       // 更新文字位置（在角色底部稍微偏下）
-      textObject.x = spineX
-      textObject.y = spineY + 80  // 在角色底部
+      textResult.setTransform({
+        x: spineX,
+        y: spineY + 80
+      })
       
       // 檢查位置是否有變化
       const deltaX = Math.abs(spineX - initialSpineX)
       const deltaY = Math.abs(spineY - initialSpineY)
       
       // 添加更詳細的調試信息
-      console.log(`🔍 Spine位置: (${spineX.toFixed(1)}, ${spineY.toFixed(1)}) | 文字位置: (${textObject.x.toFixed(1)}, ${textObject.y.toFixed(1)}) | 變化: (${deltaX.toFixed(1)}, ${deltaY.toFixed(1)})`)
+      console.log(`🔍 Spine位置: (${spineX.toFixed(1)}, ${spineY.toFixed(1)}) | 文字位置: (${textResult.textObject.x.toFixed(1)}, ${textResult.textObject.y.toFixed(1)}) | 變化: (${deltaX.toFixed(1)}, ${deltaY.toFixed(1)})`)
       
       if (deltaX < 0.1 && deltaY < 0.1) {
         console.log('⚠️ Spine 容器位置沒有變化，這可能是原地動畫')
@@ -578,15 +771,15 @@ onUnmounted(() => {
     boneTracker = null
   }
   
-  if (textObject && app) {
-    app.stage.removeChild(textObject)
-    textObject = null
+  if (textResult) {
+    textResult.destroy()
+    textResult = null
   }
-  if (app) {
-    app.destroy()
+    if (app) {
+      app.destroy()
     app = null
     spine = null
-  }
+    }
   console.log('🧹 資源已清理')
 })
 </script>
