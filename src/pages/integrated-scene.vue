@@ -391,8 +391,8 @@ async function initScene(): Promise<void> {
     const rocketScale = 0.5 // 調小火箭尺寸
     
     // 設置火箭的錨點到底部中心
-    if (rocketSpine.anchor) {
-      rocketSpine.anchor.set(0.5, 1.0) // 錨點在底部中心
+    if ((rocketSpine as any).anchor) {
+      (rocketSpine as any).anchor.set(0.5, 1.0) // 錨點在底部中心
     }
     
     applySpineTransform(rocketSpine, {
@@ -732,7 +732,7 @@ async function createAndMoveCharacter(characterId: string, type: CharacterType, 
     // 延遲驗證角色是否開始移動
     setTimeout(() => {
       logger.info(`✅ 100ms後位置驗證: (${characterSpine.x}, ${characterSpine.y}), 預期: (${initialX}, ${initialY})`)
-      logger.info(`🎭 角色移動狀態: ${characterSpine._isMoving ? '移動中' : '靜止'}`)
+      logger.info(`🎭 角色移動狀態: ${(characterSpine as any)._isMoving ? '移動中' : '靜止'}`)
       logger.info(`🎭 動畫狀態: timeScale=${characterSpine.state?.timeScale || 'unknown'}`)
     }, 100)
     
@@ -867,7 +867,7 @@ function updateFlyingSpeed(): void {
 }
 
 // 檢查角色按鈕是否應該禁用
-function isCharacterDisabled(characterId: string): boolean {
+function isCharacterDisabled(_characterId: string): boolean {
   // 在準備、倒數階段和飛行階段，所有按鈕都可以點擊（允許重複上車和跳船）
   if (currentState.value === SceneState.READY || 
       currentState.value === SceneState.COUNTDOWN || 

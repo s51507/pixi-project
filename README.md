@@ -1,352 +1,507 @@
-# 🚀 Spine 動畫系統
+# 🎮 Spine 動畫系統
 
-一個基於 **Vue 3** + **PixiJS** + **TypeScript** 的專業級 Spine 動畫平台，從單獨動畫控制到完整場景整合，提供現代化的骨骼動畫解決方案。
+基於 **Vue 3** + **PixiJS v8** + **Spine Runtime v8** 的現代化動畫平台，提供完整的 Spine 骨骼動畫解決方案。
 
-## ✨ 核心特色
+## ✨ 主要特色
 
-### 🦴 **真正的 Spine 動畫**
-- 使用官方 `@esotericsoftware/spine-pixi-v8` Runtime
-- 完整的骨骼動畫系統，支援父子關係和變換繼承  
-- 基於關鍵幀的時間軸動畫，支援多種插值模式
-- 動態調整速度、縮放、循環等播放參數
-
-### ⚡ **高性能渲染**
-- PixiJS v8 WebGL 硬件加速渲染
-- 支援 60fps 流暢動畫播放
-- 智能資源緩存和管理
-- 實時動畫狀態控制
-
-### 🎨 **現代化 UI**
-- 使用 TailwindCSS v4 的響應式設計
-- 毛玻璃效果和漸變設計語言
-- 直觀的動畫控制界面
-- 完整的調試工具和錯誤提示
+- 🦴 **完整骨骼動畫系統** - 支援 Spine 官方運行時
+- ⚡ **WebGL/WebGPU 渲染** - 高性能硬件加速
+- 🎯 **模組化架構** - 易於維護和擴展
+- 🔧 **豐富的工具集** - 包含骨骼追蹤、特效管理等實用工具
+- 📱 **響應式設計** - 適配各種螢幕尺寸
+- 🎭 **多場景展示** - 從單獨動畫到完整遊戲場景
 
 ## 🚀 快速開始
 
-### 環境要求
-
-- Node.js 18+ 
-- npm/pnpm/yarn
-- 現代瀏覽器 (支援 WebGL)
-
 ### 安裝依賴
-
 ```bash
-# 使用 npm
-npm install
-
-# 或使用 pnpm (推薦)
 pnpm install
-
-# 或使用 yarn  
-yarn install
 ```
 
-### 開發模式
-
+### 啟動開發服務器
 ```bash
-npm run dev
-```
-
-訪問 `http://localhost:5173` 查看應用
-
-### 生產構建
-
-```bash
-npm run build
-```
-
-## 📁 項目結構
-
-```
-├── public/cashorcrash2/          # 靜態動畫資源
-│   ├── spine/                    # Spine 動畫文件
-│   │   ├── rocket_v6/           # 🚀 火箭發射動畫
-│   │   ├── bonus/               # 🎁 獎勵特效動畫  
-│   │   ├── me-default1-walk_v4/ # 🚶 角色行走動畫
-│   │   └── ...                  # 其他動畫
-│   ├── avif/                    # 圖片資源
-│   └── mp3/                     # 音頻資源
-├── src/
-│   ├── components/animation/     # 動畫組件
-│   │   └── SimpleSpineTest.vue  # 🎮 Spine 動畫播放器
-│   ├── pages/                   # 頁面組件
-│   │   ├── (home).vue          # 🏠 主頁
-│   │   ├── spine-showcase.vue   # ⭐ Spine 動畫展示
-│   │   ├── cashorcrash-animation.vue # 📊 動畫對比
-│   │   └── rocket-debug.vue     # 🔧 調試工具
-│   ├── utils/                   # 工具函數
-│   │   └── atlasParser.ts       # Atlas 解析器
-│   └── router/                  # 路由配置
-└── ...
-```
-
-## 🎯 主要功能
-
-### 🎮 **現在體驗**
-
-| 功能 | 路由 | 特色描述 |
-|------|------|----------|
-| **主頁** | `/` | 項目介紹和導航中心 |
-| **單獨動畫展示** ⭐ | `/spine-showcase` | 完整的 Spine 動畫播放器，包含專業級控制系統 |
-
-#### 🎛️ **動畫控制系統**
-- **變換控制**: 縮放、位置、旋轉、速度調整
-- **🌊 漂浮效果**: 自然的正弦波漂浮動畫
-- **🚀 震動效果**: 劇烈的起飛震動模擬
-- **🔄 水平翻轉**: 一鍵翻轉動畫方向
-- **🎲 隨機變換**: 快速隨機化所有參數
-- **🔄 一鍵重置**: 恢復所有預設值
-
-### 🎬 **即將推出**
-
-| 功能 | 狀態 | 計劃特色 |
-|------|------|----------|
-| **整合場景展示** 🚧 | 開發中 | 完整火箭發射場景體驗 |
-
-#### 🌟 **預期功能**
-- **🌌 場景背景**: 完整的太空發射場景
-- **💥 爆炸特效**: 震撼的視覺爆炸效果
-- **🎵 音效同步**: 背景音樂和音效整合
-- **⏰ 時間軸控制**: 精準的發射時序控制
-
-## 🎮 支援的動畫
-
-系統包含多種 CashOrCrash2 遊戲動畫：
-
-| 動畫 | 描述 | 特色 |
-|------|------|------|
-| 🚀 **火箭發射** | 完整的火箭發射序列 | 多階段動畫、粒子效果、複雜時間軸 |
-| 🎁 **獎勵特效** | 華麗的獎勵動畫 | 光效動畫、彈性效果、循環播放 |
-| 🚶 **角色行走** | 流暢的角色行走動畫 | 骨骼動畫、循環動作、平滑過渡 |
-| 🦘 **角色跳躍** | 動態的跳躍動作 | 動態動作、重力效果、多階段 |
-| ⭐ **高級角色** | 解鎖角色的特殊動畫 | 特殊效果、高級動畫、獨特設計 |
-| 👥 **NPC 角色** | 其他角色的行走動畫 | NPC 動作、風格化、背景角色 |
-
-## 💻 技術棧
-
-### 前端框架
-- **Vue 3** - Composition API + `<script setup>`
-- **TypeScript** - 完整類型安全
-- **Vite** - 快速構建工具 + HMR
-- **Vue Router** - 文件路由系統
-
-### 樣式系統  
-- **TailwindCSS v4** - 原子化 CSS
-- **現代設計語言** - 毛玻璃、漸變、動畫
-
-### 動畫引擎
-- **PixiJS v8** - WebGL 渲染引擎
-- **@esotericsoftware/spine-pixi-v8** - 官方 Spine Runtime
-- **Canvas API** - 2D 渲染支援
-
-### 狀態管理
-- **Pinia** - 狀態管理
-- **Pinia Colada** - 數據獲取
-
-## 🔧 使用方法
-
-### 🎮 **體驗動畫系統**
-
-1. **啟動開發服務器**
-   ```bash
-   pnpm run dev
-   ```
-
-2. **訪問主頁**: `http://localhost:5173`
-
-3. **進入單獨動畫展示**: 點擊「🚀 單獨動畫展示」卡片
-
-4. **體驗完整功能**:
-   - 選擇不同動畫 (火箭、獎勵、角色等)
-   - 調整變換參數 (縮放、位置、旋轉、速度)
-   - 啟動特效 (🌊 漂浮、🚀 震動、🔄 翻轉)
-   - 使用快速操作 (🎲 隨機、🔄 重置)
-
-### 💻 **基本 Spine 動畫播放**
-
-```vue
-<template>
-  <SimpleSpineTest
-    :atlas-path="'/cashorcrash2/spine/rocket_v6/skeleton.atlas'"
-    :image-path="'/cashorcrash2/spine/rocket_v6/skeleton.png'"
-    :skel-path="'/cashorcrash2/spine/rocket_v6/skeleton.skel'"
-    :width="800"
-    :height="600"
-  />
-</template>
-
-<script setup>
-import SimpleSpineTest from '@/components/animation/SimpleSpineTest.vue'
-</script>
-```
-
-### 🎯 **動態動畫切換**
-
-```vue
-<template>
-  <div>
-    <select v-model="selectedAnimation" @change="changeAnimation">
-      <option value="all">完整動畫</option>
-      <option value="launch">發射</option>
-      <option value="flying">飛行</option>
-      <option value="explosion">爆炸</option>
-    </select>
-    
-    <SimpleSpineTest
-      :key="selectedAnimation"
-      :atlas-path="animationConfig.atlasPath"
-      :image-path="animationConfig.imagePath"
-      :skel-path="animationConfig.skelPath"
-      :width="800"
-      :height="600"
-    />
-  </div>
-</template>
-```
-
-### Atlas 數據解析
-
-```typescript
-import { parseAtlas } from '@/utils/atlasParser'
-
-// 解析 Atlas 文件
-const response = await fetch('/cashorcrash2/spine/rocket_v6/skeleton.atlas')
-const atlasContent = await response.text()
-const atlasData = parseAtlas(atlasContent)
-
-console.log('Atlas 信息:', {
-  imagePath: atlasData.imagePath,
-  size: `${atlasData.width} × ${atlasData.height}`,
-  regions: atlasData.regions.length
-})
-```
-
-## 🛠️ 開發指南
-
-### 添加新動畫
-
-1. **準備動畫文件**
-   ```bash
-   public/cashorcrash2/spine/your-animation/
-   ├── skeleton.atlas  # Atlas 文件
-   ├── skeleton.png    # 紋理圖片
-   └── skeleton.skel   # 骨骼數據
-   ```
-
-2. **更新動畫配置**
-   ```typescript
-   // 在 spine-showcase.vue 中添加
-   const animations = [
-     // ... 現有動畫
-     {
-       name: 'your-animation',
-       displayName: '你的動畫',
-       description: '動畫描述',
-       icon: '🎭',
-       features: ['特色1', '特色2'],
-       atlasPath: '/cashorcrash2/spine/your-animation/skeleton.atlas',
-       imagePath: '/cashorcrash2/spine/your-animation/skeleton.png', 
-       skelPath: '/cashorcrash2/spine/your-animation/skeleton.skel'
-     }
-   ]
-   ```
-
-### 調試和測試
-
-1. **使用調試頁面** (`/rocket-debug`)
-   - Atlas 解析測試
-   - 區域信息查看
-   - 錯誤診斷
-
-2. **控制台調試**
-   ```javascript
-   // 查看 Spine 對象
-   console.log('Spine 實例:', spine)
-   console.log('動畫列表:', spine.skeleton.data.animations)
-   console.log('骨骼信息:', spine.skeleton.bones)
-   ```
-
-3. **性能監控**
-   ```javascript
-   // 啟用 PixiJS 調試
-   window.PIXI = PIXI
-   console.log('PixiJS 版本:', PIXI.VERSION)
-   ```
-
-## 🌟 核心亮點
-
-### 🎯 **技術創新**
-- **官方 Runtime** - 使用 Esoteric Software 官方 Spine Runtime v8
-- **最新技術棧** - Vue 3 Composition API + PixiJS v8 + TypeScript
-- **智能渲染** - WebGL/WebGPU 自動選擇 + 硬件加速
-- **類型安全** - 完整的 TypeScript 類型定義
-
-### 🎨 **專業級控制系統**
-- **🎛️ 實時變換** - 縮放、位置、旋轉、速度即時調整
-- **🌊 動態特效** - 漂浮、震動、翻轉等視覺特效
-- **🎲 快速操作** - 隨機變換、一鍵重置、批量控制
-- **📊 即時反饋** - 參數顯示、狀態監控、錯誤診斷
-
-### 🚀 **未來願景**
-- **🎬 場景整合** - 從單獨控制到完整場景體驗
-- **🌌 沉浸體驗** - 背景、音效、特效的完美融合
-- **⏰ 精準控制** - 時間軸管理、事件觸發、序列編排
-- **🎯 專業工具** - 為動畫師和開發者打造的專業平台
-
-## 📈 性能特性
-
-- ⚡ **60fps 流暢播放** - WebGL 硬件加速渲染
-- 🚀 **快速載入** - 智能資源預載入和緩存
-- 💾 **內存優化** - 自動資源管理和垃圾回收
-- 📱 **設備適應** - 自動調整渲染品質
-
-## 🔗 相關鏈接
-
-- [Spine 官方文檔](https://zh.esotericsoftware.com/spine-user-guide)
-- [PixiJS 官方文檔](https://pixijs.com/)
-- [Vue 3 官方文檔](https://vuejs.org/)
-- [TailwindCSS 文檔](https://tailwindcss.com/)
-
-## 📄 授權說明
-
-本項目僅作為技術演示和學習使用：
-- 代碼部分使用 MIT 授權
-- 動畫資源版權歸原開發者所有
-- 請勿用於商業用途
-
----
-
-## 🎉 立即體驗
-
-### 🚀 **快速啟動**
-
-```bash
-git clone <repository-url>
-cd spine-animation-project
-pnpm install
 pnpm run dev
 ```
 
-### 🎮 **使用流程**
+### 構建生產版本
+```bash
+pnpm run build
+```
 
-1. **打開瀏覽器** 訪問 `http://localhost:5173`
-2. **瀏覽主頁** 了解項目功能和特色
-3. **進入動畫展示** 點擊「🚀 單獨動畫展示」
-4. **體驗完整功能** 嘗試各種動畫和控制選項
-5. **期待更多** 關注即將推出的整合場景功能
+## 📁 專案結構
 
-### 🎯 **推薦體驗路徑**
+```
+src/
+├── components/           # Vue 組件
+│   └── animation/       # 動畫相關組件
+│       ├── SimpleSpineTest.vue      # 原始 Spine 播放器
+│       └── SimpleSpineRefactored.vue # 重構版播放器（推薦）
+├── pages/               # 頁面組件
+│   ├── (home).vue       # 主頁
+│   ├── spine-showcase.vue  # Spine 動畫展示
+│   ├── jump-test.vue    # 骨骼追蹤測試頁面
+│   ├── assets-gallery.vue # 資源庫
+│   ├── integrated-scene.vue # 完整場景展示
+│   └── refactored-demo.vue  # 重構演示
+├── utils/               # 工具函數
+│   └── pixi/           # PixiJS 專用工具模組 ⭐
+│       ├── application.ts  # PixiJS 應用管理
+│       ├── assets.ts      # 資源載入管理
+│       ├── background.ts  # 背景管理
+│       ├── boneTracker.ts # 骨骼追蹤工具
+│       ├── effects.ts     # 特效系統
+│       ├── logger.ts      # 日誌工具
+│       ├── renderer.ts    # 渲染器檢測
+│       ├── scene.ts       # 場景管理
+│       ├── spine.ts       # Spine 動畫工具
+│       └── index.ts       # 統一導出
+├── router/              # Vue Router 配置
+└── main.ts             # 應用入口
+```
 
-1. **火箭動畫** → 啟動 🚀 震動效果 → 感受引擎點火
-2. **角色動畫** → 開啟 🌊 漂浮效果 → 體驗太空失重
-3. **獎勵動畫** → 使用 🔄 水平翻轉 → 查看動畫對稱性
-4. **隨機效果** → 點擊 🎲 隨機 → 探索無限可能
+## 🛠️ Utils/Pixi 工具模組詳解
+
+### 核心理念
+
+utils/pixi 是本專案的核心工具集，將 PixiJS 和 Spine 的複雜操作封裝成簡單易用的函數，實現：
+
+- **關注點分離** - 邏輯與 UI 分離
+- **可重用性** - 函數可在多個組件中使用
+- **類型安全** - 完整的 TypeScript 支持
+- **統一接口** - 一致的 API 設計
+
+### 📄 模組說明
+
+#### 1. application.ts - PixiJS 應用管理
+```typescript
+// 創建 PixiJS 應用
+const result = await createPixiApp({
+  canvas: canvasElement,
+  width: 800,
+  height: 600,
+  backgroundColor: 0x1a1a1a,
+  antialias: true,
+  logger: logFunction
+})
+
+// 銷毀應用
+destroyPixiApp(app, logFunction)
+```
+
+**主要功能：**
+- 自動檢測最佳渲染器（WebGPU > WebGL）
+- 錯誤處理和資源清理
+- 統一的配置接口
+
+#### 2. spine.ts - Spine 動畫工具
+```typescript
+// 創建 Spine 動畫
+const result = await createSpineAnimation({
+  skelPath: '/path/to/skeleton.skel',
+  atlasPath: '/path/to/skeleton.atlas',
+  imagePath: '/path/to/skeleton.png',
+  logger: logFunction
+})
+
+// 播放動畫
+playSpineAnimation(spine, 'walk', true, logFunction)
+
+// 設置變換
+applySpineTransform(spine, {
+  x: 400,
+  y: 300,
+  scaleX: 0.5,
+  scaleY: 0.5,
+  rotation: Math.PI / 4
+}, logFunction)
+```
+
+**主要功能：**
+- 統一的 Spine 創建流程
+- 動畫播放控制
+- 變換管理
+- 錯誤處理
+
+#### 3. effects.ts - 特效系統
+```typescript
+// 創建漂浮效果
+const floatState = createFloatEffect(
+  spine,
+  {
+    range: 20,
+    speed: 1.0,
+    baseX: 400,
+    baseY: 300
+  },
+  (x, y, rotation) => {
+    // 位置更新回調
+  }
+)
+
+// 創建震動效果
+const shakeState = createShakeEffect(
+  spine,
+  {
+    intensity: 15,
+    duration: 2000,
+    baseX: 400,
+    baseY: 300
+  },
+  (progress, x, y) => {
+    // 進度回調
+  },
+  () => {
+    // 完成回調
+  }
+)
+
+// 使用特效管理器
+const effectManager = new EffectManager()
+effectManager.addEffect('float', floatState)
+effectManager.stopEffect('float')
+```
+
+**主要功能：**
+- 漂浮效果（正弦波運動）
+- 震動效果（隨機震動 + 衰減）
+- 特效管理器（統一管理多個特效）
+- 可配置的參數
+
+#### 4. boneTracker.ts - 骨骼追蹤工具 ⭐
+```typescript
+// 創建骨骼追蹤器
+const boneTracker = createBoneTracker({
+  textObject: pixiText,
+  spine: spineInstance,
+  textOffsetY: 60,
+  enableDebugLog: true,
+  debugLogFrequency: 0.3
+})
+
+// 開始追蹤
+boneTracker.startTracking()
+
+// 檢查所有骨骼
+boneTracker.checkAllBonePositions()
+
+// 檢測移動的骨骼
+const result = await boneTracker.detectMovingBones(2000, () => {
+  // 啟動動畫
+  playAnimation()
+})
+
+// 停止追蹤
+boneTracker.stopTracking()
+```
+
+**主要功能：**
+- 自動選擇最佳追蹤骨骼
+- 實時座標轉換（Spine → PixiJS）
+- 移動骨骼檢測
+- 調試信息輸出
+- 資源自動清理
+
+#### 5. logger.ts - 日誌工具
+```typescript
+// 創建日誌器
+const logger = createLogger(50) // 保留 50 條日誌
+
+// 記錄不同級別的日誌
+logger.info('初始化完成')
+logger.warn('資源載入較慢')
+logger.error('載入失敗')
+
+// 獲取日誌列表（響應式）
+const logs = logger.getLogs()
+
+// 清空日誌
+logger.clear()
+
+// 創建日誌函數（用於其他工具）
+const logFunction = logger.createLogFunction()
+```
+
+**主要功能：**
+- 分級日誌（info、warn、error）
+- 自動時間戳
+- 響應式日誌列表
+- 數量限制和自動清理
+
+#### 6. assets.ts - 資源管理
+```typescript
+// 載入 Spine 資源
+const assets = await loadSpineAssets({
+  skelPath: '/path/to/skeleton.skel',
+  atlasPath: '/path/to/skeleton.atlas',
+  imagePath: '/path/to/skeleton.png'
+}, logFunction)
+
+// 預載入資源到緩存
+await preloadAssetsToCache([
+  { alias: 'skel', src: '/path/to/skeleton.skel' },
+  { alias: 'atlas', src: '/path/to/skeleton.atlas' }
+], logFunction)
+```
+
+**主要功能：**
+- 統一的資源載入接口
+- 緩存管理
+- 錯誤處理
+- 載入進度追蹤
+
+#### 7. background.ts - 背景管理
+```typescript
+// 創建背景管理器
+const backgroundManager = new BackgroundManager({
+  app: pixiApp,
+  logger: logFunction
+})
+
+// 初始化背景
+await backgroundManager.initialize()
+
+// 設置地面背景
+await backgroundManager.setGroundBackground()
+
+// 開始起飛動畫
+backgroundManager.startTakeoffAnimation(5.0) // 5x 速度
+
+// 停止和重置
+backgroundManager.stop()
+backgroundManager.reset()
+```
+
+**主要功能：**
+- 地面/天空背景切換
+- 滾動動畫效果
+- 速度控制
+- 狀態管理
+
+#### 8. scene.ts - 場景管理
+複雜的場景狀態管理，包含：
+- 場景狀態機（idle、ready、countdown、flying、exploded）
+- 角色動畫管理
+- 音頻管理
+- 倒數計時器
+
+### 🎯 使用範例
+
+#### 基本 Spine 動畫播放
+```vue
+<script setup lang="ts">
+import { 
+  createPixiApp, 
+  createSpineAnimation, 
+  playSpineAnimation 
+} from '@/utils/pixi'
+
+async function initAnimation() {
+  // 1. 創建 PixiJS 應用
+  const { app } = await createPixiApp({
+    canvas: canvasRef.value,
+    width: 800,
+    height: 600
+  })
+  
+  // 2. 創建 Spine 動畫
+  const { spine } = await createSpineAnimation({
+    skelPath: '/spine/character/skeleton.skel',
+    atlasPath: '/spine/character/skeleton.atlas'
+  })
+  
+  // 3. 添加到場景並播放
+  app.stage.addChild(spine)
+  playSpineAnimation(spine, 'walk', true)
+}
+</script>
+```
+
+#### 帶特效的動畫
+```vue
+<script setup lang="ts">
+import { 
+  createPixiApp, 
+  createSpineAnimation,
+  createFloatEffect,
+  EffectManager 
+} from '@/utils/pixi'
+
+const effectManager = new EffectManager()
+
+async function initWithEffects() {
+  const { app } = await createPixiApp({ /* ... */ })
+  const { spine } = await createSpineAnimation({ /* ... */ })
+  
+  app.stage.addChild(spine)
+  
+  // 添加漂浮效果
+  const floatState = createFloatEffect(spine, {
+    range: 30,
+    speed: 1.5
+  })
+  
+  effectManager.addEffect('float', floatState)
+}
+</script>
+```
+
+#### 骨骼追蹤文字跟隨
+```vue
+<script setup lang="ts">
+import { createBoneTracker } from '@/utils/pixi/boneTracker'
+
+async function initBoneTracking() {
+  // 創建文字物件
+  const textObject = new PIXI.Text('Hello World', textStyle)
+  app.stage.addChild(textObject)
+  
+  // 創建骨骼追蹤器
+  const boneTracker = createBoneTracker({
+    textObject,
+    spine,
+    textOffsetY: 50,
+    enableDebugLog: true
+  })
+  
+  // 開始追蹤
+  boneTracker.startTracking()
+}
+</script>
+```
+
+## 🎮 頁面功能
+
+### 主頁 (/)
+- 專案介紹和功能概覽
+- 導航到各個展示頁面
+- 技術架構說明
+
+### Spine 動畫展示 (/spine-showcase)
+- 多種 Spine 動畫展示
+- 完整的播放控制面板
+- 變換控制（縮放、旋轉、位置）
+- 特效系統（漂浮、震動）
+- 實時調試日誌
+
+### 骨骼追蹤測試 (/jump-test)
+- 骨骼追蹤功能演示
+- 文字跟隨動畫軌道
+- 移動骨骼檢測
+- 座標系統調試
+
+### 整合場景 (/integrated-scene)
+- 完整的火箭發射場景
+- 背景音樂和音效
+- 角色互動系統
+- 複雜的狀態管理
+
+### 資源庫 (/assets-gallery)
+- 所有 Spine 動畫資源
+- 圖片和音效資源
+- 資源使用指南
+
+### 重構演示 (/refactored-demo)
+- 展示重構後的代碼架構
+- 新舊版本對比
+- 最佳實踐說明
+
+## 🔧 開發指南
+
+### 添加新的動畫
+
+1. **準備資源**
+   ```
+   public/cashorcrash2/spine/新動畫名稱/
+   ├── skeleton.skel
+   ├── skeleton.atlas
+   └── skeleton.png
+   ```
+
+2. **使用工具函數**
+   ```typescript
+   const { spine, animations } = await createSpineAnimation({
+     skelPath: '/cashorcrash2/spine/新動畫名稱/skeleton.skel',
+     atlasPath: '/cashorcrash2/spine/新動畫名稱/skeleton.atlas',
+     imagePath: '/cashorcrash2/spine/新動畫名稱/skeleton.png'
+   })
+   ```
+
+3. **添加到展示頁面**
+   更新 `spine-showcase.vue` 的動畫列表
+
+### 創建新的特效
+
+1. **在 effects.ts 中添加新函數**
+   ```typescript
+   export function createNewEffect(spine: Spine, config: NewEffectConfig) {
+     // 特效邏輯
+     return {
+       stop: () => { /* 停止邏輯 */ },
+       dispose: () => { /* 清理邏輯 */ }
+     }
+   }
+   ```
+
+2. **在組件中使用**
+   ```typescript
+   const effectState = createNewEffect(spine, config)
+   effectManager.addEffect('newEffect', effectState)
+   ```
+
+### 調試技巧
+
+1. **啟用日誌**
+   ```typescript
+   const logger = createLogger(100)
+   // 在所有工具函數中傳入 logger.createLogFunction()
+   ```
+
+2. **檢查渲染器信息**
+   ```typescript
+   const rendererInfo = getRendererInfo()
+   console.log(rendererInfo)
+   ```
+
+3. **骨骼位置調試**
+   ```typescript
+   boneTracker.checkAllBonePositions()
+   ```
+
+## 🚀 性能優化
+
+### 渲染器選擇
+- 自動選擇最佳渲染器（WebGPU > WebGL）
+- 支援回退機制
+
+### 資源管理
+- 自動資源緩存
+- 組件銷毀時自動清理
+- 避免記憶體洩漏
+
+### 動畫優化
+- 按需啟動特效
+- 自動停止非活動動畫
+- 合理的更新頻率
+
+## 📚 相關文檔
+
+- [PixiJS v8 文檔](https://pixijs.com/8.x/guides)
+- [Spine Runtime 文檔](https://esotericsoftware.com/spine-runtimes)
+- [Vue 3 文檔](https://vuejs.org/)
+- [TypeScript 文檔](https://www.typescriptlang.org/)
+
+## 🤝 貢獻指南
+
+1. Fork 專案
+2. 創建功能分支 (`git checkout -b feature/新功能`)
+3. 提交更改 (`git commit -m '添加新功能'`)
+4. 推送到分支 (`git push origin feature/新功能`)
+5. 創建 Pull Request
+
+## 📄 授權
+
+本專案使用 MIT 授權條款。
 
 ---
 
-💡 **提示**: 
-- 如遇到問題，請檢查瀏覽器控制台的詳細日誌
-- 所有控制參數都有即時的視覺反饋
-- 系統支援 WebGL 和 WebGPU 渲染，性能表現優異
+**注意**: 本專案主要用於展示 Spine 動畫技術，所有動畫資源僅供學習和展示使用。
