@@ -36,6 +36,11 @@
           </span>
         </div>
 
+        <!-- 素材包切換 -->
+        <div class="mb-8">
+          <AssetPackSwitch />
+        </div>
+
         <!-- 主要特色 -->
         <div class="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 backdrop-blur-lg rounded-2xl p-6 border border-white/10 max-w-4xl mx-auto">
           <h2 class="text-2xl font-bold mb-4 text-emerald-400">✨ 真正的 Spine 骨骼動畫</h2>
@@ -270,4 +275,5 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
 </script>

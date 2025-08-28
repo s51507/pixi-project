@@ -41,8 +41,11 @@
           <div class="text-sm text-gray-300">
             軌道追蹤系統
             </div>
-          </div>
-        </div>
+                  </div>
+      </div>
+
+      <!-- 素材包切換 -->
+      <AssetPackSwitch v-if="loaded" class="mb-6" />
 
       <!-- 文字設定 -->
       <div v-if="loaded" class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-6">
@@ -242,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import * as PIXI from 'pixi.js'
 import { Spine } from '@esotericsoftware/spine-pixi-v8'
@@ -255,6 +258,11 @@ import {
   type TextConfig 
 } from '@/utils/pixi/text'
 import type { TextOffset } from '@/utils/pixi/boneTracker'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
+import { useAssetPackStore } from '@/stores/assetPack'
+
+// Store
+const assetPackStore = useAssetPackStore()
 
 // 狀態管理
 const loading = ref(true)
@@ -286,12 +294,10 @@ let trackingAnimationId: number | null = null
 // 骨骼追蹤器
 let boneTracker: BoneTracker | null = null
 
-// 跳躍動畫資源路徑
-const JUMP_ANIMATION = {
-  atlasPath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.atlas',
-  imagePath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.png',
-  skelPath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.skel'
-}
+// 響應式跳躍動畫資源路徑 - 會根據當前素材包自動更新
+const JUMP_ANIMATION = computed(() => {
+  return assetPackStore.getSpineAssets('me-default1-jump_v3')
+})
 
 /**
  * 初始化 PIXI 和 Spine
@@ -321,16 +327,16 @@ async function init(): Promise<void> {
     const skelKey = `jump-skel-${Date.now()}`
     const atlasKey = `jump-atlas-${Date.now()}`
     
-    PIXI.Assets.add({ alias: skelKey, src: JUMP_ANIMATION.skelPath })
-    PIXI.Assets.add({ alias: atlasKey, src: JUMP_ANIMATION.atlasPath })
+    PIXI.Assets.add({ alias: skelKey, src: JUMP_ANIMATION.value.skelPath })
+    PIXI.Assets.add({ alias: atlasKey, src: JUMP_ANIMATION.value.atlasPath })
     await PIXI.Assets.load([skelKey, atlasKey])
     console.log('✅ 跳躍動畫資源載入完成')
     
     // 3. 創建 Spine 跳躍角色
     status.value = '創建 Spine 角色...'
     spine = await Spine.from({
-      skeleton: JUMP_ANIMATION.skelPath,
-      atlas: JUMP_ANIMATION.atlasPath
+      skeleton: JUMP_ANIMATION.value.skelPath,
+      atlas: JUMP_ANIMATION.value.atlasPath
     })
     console.log('✅ Spine 角色創建成功')
     
@@ -759,6 +765,44 @@ function stopTrackingAnimation(): void {
 // 生命週期
 onMounted(() => {
   init()
+})
+
+// 監聽素材包變化並重新初始化
+watch(() => assetPackStore.currentPack, async (newPack, oldPack) => {
+  if (oldPack && newPack !== oldPack) {
+    console.log(`🎨 素材包切換: ${oldPack} → ${newPack}，重新初始化動畫`)
+    
+    // 停止當前所有活動
+    stopTrackingAnimation()
+    
+    // 清理現有資源
+    if (boneTracker) {
+      boneTracker.dispose()
+      boneTracker = null
+    }
+    
+    if (textResult) {
+      textResult.destroy()
+      textResult = null
+    }
+    
+    if (app) {
+      app.destroy()
+      app = null
+      spine = null
+    }
+    
+    // 重置狀態
+    loading.value = true
+    loaded.value = false
+    error.value = false
+    textVisible.value = false
+    isFollowing.value = false
+    isBoneTracking.value = false
+    
+    // 重新初始化
+    await init()
+  }
 })
 
 onUnmounted(() => {

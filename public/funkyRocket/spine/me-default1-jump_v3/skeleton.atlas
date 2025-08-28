@@ -1,0 +1,12 @@
+skeleton.png
+size:522,204
+filter:Linear,Linear
+pma:true
+fall
+bounds:2,2,200,254
+rotate:90
+me
+bounds:445,118,75,84
+parachute
+bounds:258,2,200,185
+rotate:90

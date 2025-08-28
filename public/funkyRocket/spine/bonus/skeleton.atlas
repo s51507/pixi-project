@@ -1,0 +1,20 @@
+skeleton.png
+size:1794,505
+filter:Linear,Linear
+pma:true
+lootbox_1
+bounds:1055,39,464,434
+offsets:0,0,500,565
+rotate:90
+lootbox_2
+bounds:569,2,484,501
+offsets:0,0,500,565
+lootbox_3
+bounds:2,3,500,565
+rotate:90
+rediated
+bounds:1711,126,81,377
+offsets:9,3,100,402
+time freeze 3
+bounds:1491,291,218,212
+offsets:2,2,222,216

@@ -42,6 +42,9 @@
         </div>
       </div>
 
+      <!-- 素材包切換 -->
+      <AssetPackSwitch class="mb-8" />
+
       <!-- 動畫選擇 -->
       <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-8">
         <h2 class="text-2xl font-semibold mb-6">選擇動畫</h2>
@@ -52,7 +55,7 @@
             @click="selectAnimation(animation)"
             :class="[
               'p-4 border-2 rounded-xl cursor-pointer transition-all transform hover:scale-105',
-              selectedAnimationData?.name === animation.name
+              selectedAnimationName === animation.name
                 ? 'border-yellow-400 bg-yellow-400/20 shadow-lg'
                 : 'border-white/30 hover:border-white/50 hover:bg-white/10'
             ]"
@@ -88,8 +91,7 @@
         </div>
         
         <div class="flex justify-center">
-          <SimpleSpineTest
-            :key="`${selectedAnimationData.name}-${Date.now()}`"
+          <SimpleSpineRefactored
             :atlas-path="selectedAnimationData.atlasPath"
             :image-path="selectedAnimationData.imagePath"
             :skel-path="selectedAnimationData.skelPath"
@@ -144,9 +146,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import SimpleSpineTest from '@/components/animation/SimpleSpineTest.vue'
+import SimpleSpineRefactored from '@/components/animation/SimpleSpineRefactored.vue'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
+
+import { useAssetPackStore } from '@/stores/assetPack'
 
 interface AnimationData {
   name: string
@@ -159,19 +164,26 @@ interface AnimationData {
   skelPath: string
 }
 
-const selectedAnimationData = ref<AnimationData | null>(null)
+// Store
+const assetPackStore = useAssetPackStore()
 
-// 精心設計的動畫展示列表
-const animations: AnimationData[] = [
+const selectedAnimationName = ref<string | null>(null)
+
+// 響應式的選中動畫數據，會隨素材包變化自動更新路徑
+const selectedAnimationData = computed<AnimationData | null>(() => {
+  if (!selectedAnimationName.value) return null
+  return animations.value.find(anim => anim.name === selectedAnimationName.value) || null
+})
+
+// 動畫基礎配置（不包含路徑）
+const animationConfigs = [
   {
     name: 'rocket',
     displayName: '火箭發射',
     description: '完整的火箭發射序列，包含門開啟、點火、升空和爆炸效果',
     icon: '🚀',
     features: ['多階段動畫', '粒子效果', '複雜時間軸'],
-    atlasPath: '/cashorcrash2/spine/rocket_v6/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/rocket_v6/skeleton.png',
-    skelPath: '/cashorcrash2/spine/rocket_v6/skeleton.skel'
+    spineFolder: 'rocket_v6'
   },
   {
     name: 'bonus',
@@ -179,9 +191,7 @@ const animations: AnimationData[] = [
     description: '華麗的獎勵動畫，展示光效和慶祝元素',
     icon: '🎁',
     features: ['光效動畫', '彈性效果', '循環播放'],
-    atlasPath: '/cashorcrash2/spine/bonus/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/bonus/skeleton.png',
-    skelPath: '/cashorcrash2/spine/bonus/skeleton.skel'
+    spineFolder: 'bonus'
   },
   {
     name: 'character-walk',
@@ -189,9 +199,7 @@ const animations: AnimationData[] = [
     description: '流暢的角色行走動畫，展示骨骼動畫的細膩表現',
     icon: '🚶',
     features: ['骨骼動畫', '循環動作', '平滑過渡'],
-    atlasPath: '/cashorcrash2/spine/me-default1-walk_v4/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/me-default1-walk_v4/skeleton.png',
-    skelPath: '/cashorcrash2/spine/me-default1-walk_v4/skeleton.skel'
+    spineFolder: 'me-default1-walk_v4'
   },
   {
     name: 'character-jump',
@@ -199,9 +207,7 @@ const animations: AnimationData[] = [
     description: '動態的跳躍動作，包含起跳、空中和落地階段',
     icon: '🦘',
     features: ['動態動作', '重力效果', '多階段'],
-    atlasPath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.png',
-    skelPath: '/cashorcrash2/spine/me-default1-jump_v3/skeleton.skel'
+    spineFolder: 'me-default1-jump_v3'
   },
   {
     name: 'character-premium',
@@ -209,9 +215,7 @@ const animations: AnimationData[] = [
     description: '解鎖角色的特殊動畫，展示更豐富的視覺效果',
     icon: '⭐',
     features: ['特殊效果', '高級動畫', '獨特設計'],
-    atlasPath: '/cashorcrash2/spine/me-default2-walk_v4/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/me-default2-walk_v4/skeleton.png',
-    skelPath: '/cashorcrash2/spine/me-default2-walk_v4/skeleton.skel'
+    spineFolder: 'me-default2-walk_v4'
   },
   {
     name: 'npc-character',
@@ -219,17 +223,31 @@ const animations: AnimationData[] = [
     description: '其他角色的行走動畫，展示不同的動作風格',
     icon: '👥',
     features: ['NPC 動作', '風格化', '背景角色'],
-    atlasPath: '/cashorcrash2/spine/others-default1-walk_v4/skeleton.atlas',
-    imagePath: '/cashorcrash2/spine/others-default1-walk_v4/skeleton.png',
-    skelPath: '/cashorcrash2/spine/others-default1-walk_v4/skeleton.skel'
+    spineFolder: 'others-default1-walk_v4'
   }
 ]
+
+// 響應式動畫列表 - 會根據當前素材包自動更新路徑
+const animations = computed<AnimationData[]>(() => {
+  return animationConfigs.map(config => {
+    const assets = assetPackStore.getSpineAssets(config.spineFolder)
+    return {
+      name: config.name,
+      displayName: config.displayName,
+      description: config.description,
+      icon: config.icon,
+      features: config.features,
+      atlasPath: assets.atlasPath,
+      imagePath: assets.imagePath,
+      skelPath: assets.skelPath
+    }
+  })
+})
 
 /**
  * 選擇動畫
  */
 function selectAnimation(animation: AnimationData): void {
-  selectedAnimationData.value = animation
-  console.log(`🎮 選中動畫: ${animation.displayName}`)
+  selectedAnimationName.value = animation.name
 }
 </script>

@@ -291,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import type { Application } from 'pixi.js'
 import type { Spine } from '@esotericsoftware/spine-pixi-v8'
 import { 
@@ -336,9 +336,9 @@ let spine: Spine | null = null
 
 // 變換控制
 const transform = reactive({
-  x: 0,
-  y: 0,
-  scale: 0.5,
+  x: -80, // 大幅向左偏移，修正視覺置中
+  y: -30, // 稍微向上偏移，讓動畫看起來更置中
+  scale: 0.35, // 縮小動畫尺寸
   rotation: 0,
   speed: 1.0,
   flipX: false
@@ -398,12 +398,14 @@ async function init(): Promise<void> {
     // 3. 添加到舞台並設置初始位置
     app.stage.addChild(spine)
     
-    // 設置初始變換
+    // 設置初始變換（使用與 updateTransform 相同的邏輯）
+    const scaleValue = Number(transform.scale)
     const initialTransform: SpineTransform = {
-      x: props.width / 2,
-      y: props.height / 2,
-      scaleX: transform.scale,
-      scaleY: transform.scale
+      x: (props.width / 2) + Number(transform.x),
+      y: (props.height / 2) + Number(transform.y),
+      scaleX: transform.flipX ? -scaleValue : scaleValue,
+      scaleY: scaleValue,
+      rotation: (Number(transform.rotation) * Math.PI) / 180
     }
     
     applySpineTransform(spine, initialTransform, logger.createLogFunction())
@@ -546,9 +548,9 @@ function toggleFlip(): void {
 function resetAll(): void {
   effectManager.stopAllEffects()
   
-  transform.x = 0
-  transform.y = 0
-  transform.scale = 0.5
+  transform.x = -80 // 重置到視覺置中位置
+  transform.y = -30 // 重置到置中位置
+  transform.scale = 0.35 // 重置到適當大小
   transform.rotation = 0
   transform.speed = 1.0
   transform.flipX = false
@@ -575,6 +577,19 @@ function cleanup(): void {
 
 onMounted(() => {
   init()
+})
+
+// 監聽 props 變化，重新初始化
+watch([() => props.atlasPath, () => props.imagePath, () => props.skelPath], async (newPaths: string[], oldPaths: string[]) => {
+  if (oldPaths && oldPaths.some((path: string) => path)) { // 確保不是初始化
+    logger.info(`🎨 素材包變化，重新載入 Spine 動畫`)
+    
+    // 清理現有資源
+    cleanup()
+    
+    // 重新初始化
+    await init()
+  }
 })
 
 onUnmounted(() => {

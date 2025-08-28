@@ -9,6 +9,9 @@
         </p>
       </div>
 
+      <!-- 素材包切換 -->
+      <AssetPackSwitch class="mb-8" />
+
       <!-- 資源統計 -->
       <div class="grid md:grid-cols-3 gap-6 mb-8">
         <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/30 border border-blue-600/30 rounded-lg p-6">
@@ -80,6 +83,7 @@
           >
             <div class="aspect-square bg-gray-700 rounded mb-2 overflow-hidden">
               <img 
+                :key="`${image.name}-${assetPackStore.currentPack}`"
                 :src="image.path" 
                 :alt="image.name"
                 class="w-full h-full object-contain group-hover:scale-105 transition-transform"
@@ -320,6 +324,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
+import { useAssetPackStore } from '@/stores/assetPack'
 
 // 分類選項
 const categories = [
@@ -328,6 +334,9 @@ const categories = [
   { id: 'spine', name: 'Spine 動畫', icon: '🦴' },
   { id: 'usage', name: '使用指南', icon: '📋' }
 ]
+
+// Store
+const assetPackStore = useAssetPackStore()
 
 const activeCategory = ref('images')
 const imageSearch = ref('')
@@ -361,74 +370,96 @@ interface SpineResource {
   textureFile: string
 }
 
-// 圖片資源數據
-const imageFiles: ImageResource[] = [
+// 圖片資源基礎配置（不包含路徑）
+const imageConfigs = [
   // UI 元件
-  { name: 'auto_btn', displayName: '自動按鈕', path: '/cashorcrash2/avif/assets/auto_btn-C1gkCpkL.avif', category: 'UI 元件' },
-  { name: 'popUp_button', displayName: '彈窗按鈕', path: '/cashorcrash2/avif/assets/popUp_button-Cg0SOdCO.avif', category: 'UI 元件' },
-  { name: 'sound_icon', displayName: '音效圖標', path: '/cashorcrash2/avif/assets/sound_icon-BzrAZiwd.avif', category: 'UI 元件' },
-  { name: 'boost_pressed', displayName: '加速按鈕', path: '/cashorcrash2/avif/assets/boost_pressed-D_rVqV-8.avif', category: 'UI 元件' },
+  { name: 'auto_btn', displayName: '自動按鈕', filename: 'auto_btn-C1gkCpkL.avif', category: 'UI 元件' },
+  { name: 'popUp_button', displayName: '彈窗按鈕', filename: 'popUp_button-Cg0SOdCO.avif', category: 'UI 元件' },
+  { name: 'sound_icon', displayName: '音效圖標', filename: 'sound_icon-BzrAZiwd.avif', category: 'UI 元件' },
+  { name: 'boost_pressed', displayName: '加速按鈕', filename: 'boost_pressed-D_rVqV-8.avif', category: 'UI 元件' },
   
   // 背景元素
-  { name: 'horizon', displayName: '地平線', path: '/cashorcrash2/avif/assets/horizon-ddpSJfpk.avif', category: '背景元素' },
-  { name: 'boostBg', displayName: '加速背景', path: '/cashorcrash2/avif/assets/boostBg-DW-l0ynO.avif', category: '背景元素' },
-  { name: 'diagramBg', displayName: '圖表背景', path: '/cashorcrash2/avif/assets/diagramBg-BwJWoQve.avif', category: '背景元素' },
-  { name: 'skins_bg_active', displayName: '皮膚背景', path: '/cashorcrash2/avif/assets/skins_bg_active-BLRQO9Ux.avif', category: '背景元素' },
+  { name: 'horizon', displayName: '地平線', filename: 'horizon-ddpSJfpk.avif', category: '背景元素' },
+  { name: 'boostBg', displayName: '加速背景', filename: 'boostBg-DW-l0ynO.avif', category: '背景元素' },
+  { name: 'diagramBg', displayName: '圖表背景', filename: 'diagramBg-BwJWoQve.avif', category: '背景元素' },
+  { name: 'skins_bg_active', displayName: '皮膚背景', filename: 'skins_bg_active-BLRQO9Ux.avif', category: '背景元素' },
   
   // 特效元素
-  { name: 'bonus_light', displayName: '獎勵光效', path: '/cashorcrash2/avif/assets/bonus_light-Cu4TCLyK.avif', category: '特效元素' },
-  { name: 'bonus_time', displayName: '獎勵時間', path: '/cashorcrash2/avif/assets/bonus_time-DbFuewU0.avif', category: '特效元素' },
-  { name: 'multiplierX10', displayName: '10倍乘數', path: '/cashorcrash2/avif/assets/multiplierX10-Ce62ig_P.avif', category: '特效元素' },
+  { name: 'bonus_light', displayName: '獎勵光效', filename: 'bonus_light-Cu4TCLyK.avif', category: '特效元素' },
+  { name: 'bonus_time', displayName: '獎勵時間', filename: 'bonus_time-DbFuewU0.avif', category: '特效元素' },
+  { name: 'multiplierX10', displayName: '10倍乘數', filename: 'multiplierX10-Ce62ig_P.avif', category: '特效元素' },
   
   // 角色元素
-  { name: 'default1_full', displayName: '預設角色', path: '/cashorcrash2/avif/assets/default1_full-D7I8VrNi.avif', category: '角色元素' },
-  { name: 'rare', displayName: '稀有角色', path: '/cashorcrash2/avif/assets/rare-DjZDV1WT.avif', category: '角色元素' },
-  { name: 'common', displayName: '普通角色', path: '/cashorcrash2/avif/assets/common-C0-QEBFp.avif', category: '角色元素' },
+  { name: 'default1_full', displayName: '預設角色', filename: 'default1_full-D7I8VrNi.avif', category: '角色元素' },
+  { name: 'rare', displayName: '稀有角色', filename: 'rare-DjZDV1WT.avif', category: '角色元素' },
+  { name: 'common', displayName: '普通角色', filename: 'common-C0-QEBFp.avif', category: '角色元素' },
   
   // 道具元素
-  { name: 'locker', displayName: '鎖定道具', path: '/cashorcrash2/avif/assets/locker-eT2g1lBH.avif', category: '道具元素' },
-  { name: 'you_got', displayName: '獲得提示', path: '/cashorcrash2/avif/assets/you_got-Cck-STMY.avif', category: '道具元素' },
-  { name: 'unlocked_item_bg', displayName: '解鎖道具背景', path: '/cashorcrash2/avif/assets/unlocked_item_bg-DccZyiCC.avif', category: '道具元素' },
-  { name: 'timeFreeze_disable', displayName: '時間凍結禁用', path: '/cashorcrash2/avif/assets/timeFreeze_disable-DvHOp30K.avif', category: '道具元素' },
+  { name: 'locker', displayName: '鎖定道具', filename: 'locker-eT2g1lBH.avif', category: '道具元素' },
+  { name: 'you_got', displayName: '獲得提示', filename: 'you_got-Cck-STMY.avif', category: '道具元素' },
+  { name: 'unlocked_item_bg', displayName: '解鎖道具背景', filename: 'unlocked_item_bg-DccZyiCC.avif', category: '道具元素' },
+  { name: 'timeFreeze_disable', displayName: '時間凍結禁用', filename: 'timeFreeze_disable-DvHOp30K.avif', category: '道具元素' },
 ]
 
-// 音效資源數據
-const audioFiles: AudioResource[] = [
+// 響應式圖片資源列表 - 會根據當前素材包自動更新路徑
+const imageFiles = computed<ImageResource[]>(() => {
+  return imageConfigs.map(config => ({
+    name: config.name,
+    displayName: config.displayName,
+    path: assetPackStore.getImagePath(config.filename),
+    category: config.category
+  }))
+})
+
+// 音效資源基礎配置（不包含路徑）
+const audioConfigs = [
   // 背景音樂
-  { name: 'bgm_fly', displayName: '飛行背景音樂', path: '/cashorcrash2/mp3/assets/bgm_fly-DX4muDxO.mp3', category: '背景音樂', icon: '🎼', description: '火箭飛行時的背景音樂' },
-  { name: 'bgm_open', displayName: '開場背景音樂', path: '/cashorcrash2/mp3/assets/bgm_open-DYI02Dgc.mp3', category: '背景音樂', icon: '🎼', description: '遊戲開始時的背景音樂' },
+  { name: 'bgm_fly', displayName: '飛行背景音樂', filename: 'bgm_fly-DX4muDxO.mp3', category: '背景音樂', icon: '🎼', description: '火箭飛行時的背景音樂' },
+  { name: 'bgm_open', displayName: '開場背景音樂', filename: 'bgm_open-DYI02Dgc.mp3', category: '背景音樂', icon: '🎼', description: '遊戲開始時的背景音樂' },
   
   // 火箭音效
-  { name: 'rocket_explode', displayName: '火箭爆炸', path: '/cashorcrash2/mp3/assets/rocket_explode-DyCSKWjQ.mp3', category: '火箭音效', icon: '🚀', description: '火箭爆炸時的音效' },
-  { name: 'rocket_fly', displayName: '火箭飛行', path: '/cashorcrash2/mp3/assets/rocket_fly-B0Tde6-n.mp3', category: '火箭音效', icon: '🚀', description: '火箭飛行時的音效' },
-  { name: 'rocket_prelaunch_beginning', displayName: '發射準備', path: '/cashorcrash2/mp3/assets/rocket_prelaunch_beginning-CBWMXJzv.mp3', category: '火箭音效', icon: '🚀', description: '火箭發射前的準備音效' },
-  { name: 'rocket_prelaunch_launching', displayName: '發射啟動', path: '/cashorcrash2/mp3/assets/rocket_prelaunch_launching-CbFaD9b4.mp3', category: '火箭音效', icon: '🚀', description: '火箭發射啟動音效' },
+  { name: 'rocket_explode', displayName: '火箭爆炸', filename: 'rocket_explode-DyCSKWjQ.mp3', category: '火箭音效', icon: '🚀', description: '火箭爆炸時的音效' },
+  { name: 'rocket_fly', displayName: '火箭飛行', filename: 'rocket_fly-B0Tde6-n.mp3', category: '火箭音效', icon: '🚀', description: '火箭飛行時的音效' },
+  { name: 'rocket_prelaunch_beginning', displayName: '發射準備', filename: 'rocket_prelaunch_beginning-CBWMXJzv.mp3', category: '火箭音效', icon: '🚀', description: '火箭發射前的準備音效' },
+  { name: 'rocket_prelaunch_launching', displayName: '發射啟動', filename: 'rocket_prelaunch_launching-CbFaD9b4.mp3', category: '火箭音效', icon: '🚀', description: '火箭發射啟動音效' },
   
   // 獎勵音效
-  { name: 'bonus_accumulate', displayName: '獎勵累積', path: '/cashorcrash2/mp3/assets/bonus_accumulate-D3P8dgMI.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵點數累積音效' },
-  { name: 'bonus_reveal', displayName: '獎勵揭曉', path: '/cashorcrash2/mp3/assets/bonus_reveal-C_3rhldl.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵揭曉音效' },
-  { name: 'bonus_reveal_fail', displayName: '獎勵失敗', path: '/cashorcrash2/mp3/assets/bonus_reveal_fail-odj-AqHS.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵獲取失敗音效' },
-  { name: 'bonus_time', displayName: '獎勵時間', path: '/cashorcrash2/mp3/assets/bonus_time-CntR1-ac.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵時間音效' },
-  { name: 'winning', displayName: '獲勝音效', path: '/cashorcrash2/mp3/assets/winning-_MaDcpoI.mp3', category: '獎勵音效', icon: '🏆', description: '獲勝時的慶祝音效' },
+  { name: 'bonus_accumulate', displayName: '獎勵累積', filename: 'bonus_accumulate-D3P8dgMI.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵點數累積音效' },
+  { name: 'bonus_reveal', displayName: '獎勵揭曉', filename: 'bonus_reveal-C_3rhldl.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵揭曉音效' },
+  { name: 'bonus_reveal_fail', displayName: '獎勵失敗', filename: 'bonus_reveal_fail-odj-AqHS.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵獲取失敗音效' },
+  { name: 'bonus_time', displayName: '獎勵時間', filename: 'bonus_time-CntR1-ac.mp3', category: '獎勵音效', icon: '🎁', description: '獎勵時間音效' },
+  { name: 'winning', displayName: '獲勝音效', filename: 'winning-_MaDcpoI.mp3', category: '獎勵音效', icon: '🏆', description: '獲勝時的慶祝音效' },
   
   // UI 音效
-  { name: 'click', displayName: '點擊音效', path: '/cashorcrash2/mp3/assets/click-yOjLuJq2.mp3', category: 'UI 音效', icon: '👆', description: '按鈕點擊音效' },
-  { name: 'play', displayName: '播放音效', path: '/cashorcrash2/mp3/assets/play-R-fW3JvX.mp3', category: 'UI 音效', icon: '▶️', description: '播放按鈕音效' },
-  { name: 'popup_event', displayName: '事件彈窗', path: '/cashorcrash2/mp3/assets/popup_event-Bc_v_lS_.mp3', category: 'UI 音效', icon: '📢', description: '事件彈窗音效' },
-  { name: 'popup_error', displayName: '錯誤彈窗', path: '/cashorcrash2/mp3/assets/popup_error-Dqi5VTrS.mp3', category: 'UI 音效', icon: '❌', description: '錯誤提示音效' },
+  { name: 'click', displayName: '點擊音效', filename: 'click-yOjLuJq2.mp3', category: 'UI 音效', icon: '👆', description: '按鈕點擊音效' },
+  { name: 'play', displayName: '播放音效', filename: 'play-R-fW3JvX.mp3', category: 'UI 音效', icon: '▶️', description: '播放按鈕音效' },
+  { name: 'popup_event', displayName: '事件彈窗', filename: 'popup_event-Bc_v_lS_.mp3', category: 'UI 音效', icon: '📢', description: '事件彈窗音效' },
+  { name: 'popup_error', displayName: '錯誤彈窗', filename: 'popup_error-Dqi5VTrS.mp3', category: 'UI 音效', icon: '❌', description: '錯誤提示音效' },
   
   // 遊戲音效
-  { name: 'boosting', displayName: '加速音效', path: '/cashorcrash2/mp3/assets/boosting-MRzlIner.mp3', category: '遊戲音效', icon: '⚡', description: '加速道具音效' },
-  { name: 'countdown', displayName: '倒數計時', path: '/cashorcrash2/mp3/assets/countdown-S5DFRcF0.mp3', category: '遊戲音效', icon: '⏰', description: '倒數計時音效' },
-  { name: 'stake_plus', displayName: '加注音效', path: '/cashorcrash2/mp3/assets/stake_plus-R_vub2_R.mp3', category: '遊戲音效', icon: '➕', description: '增加下注音效' },
-  { name: 'stake_minus', displayName: '減注音效', path: '/cashorcrash2/mp3/assets/stake_minus-bVdOU9CR.mp3', category: '遊戲音效', icon: '➖', description: '減少下注音效' },
+  { name: 'boosting', displayName: '加速音效', filename: 'boosting-MRzlIner.mp3', category: '遊戲音效', icon: '⚡', description: '加速道具音效' },
+  { name: 'countdown', displayName: '倒數計時', filename: 'countdown-S5DFRcF0.mp3', category: '遊戲音效', icon: '⏰', description: '倒數計時音效' },
+  { name: 'stake_plus', displayName: '加注音效', filename: 'stake_plus-R_vub2_R.mp3', category: '遊戲音效', icon: '➕', description: '增加下注音效' },
+  { name: 'stake_minus', displayName: '減注音效', filename: 'stake_minus-bVdOU9CR.mp3', category: '遊戲音效', icon: '➖', description: '減少下注音效' },
   
   // 角色音效
-  { name: 'user_hop_on', displayName: '玩家上車', path: '/cashorcrash2/mp3/assets/user_hop_on-D1L_1wBN.mp3', category: '角色音效', icon: '🧑', description: '玩家加入遊戲音效' },
-  { name: 'user_hop_off', displayName: '玩家下車', path: '/cashorcrash2/mp3/assets/user_hop_off-jltqlRTg.mp3', category: '角色音效', icon: '🧑', description: '玩家離開遊戲音效' },
-  { name: 'others_hop_on', displayName: '其他人上車', path: '/cashorcrash2/mp3/assets/others_hop_on-BZB6aVMn.mp3', category: '角色音效', icon: '👥', description: '其他玩家加入音效' },
-  { name: 'others_hop_off', displayName: '其他人下車', path: '/cashorcrash2/mp3/assets/others_hop_off-B0ltzgMH.mp3', category: '角色音效', icon: '👥', description: '其他玩家離開音效' },
+  { name: 'user_hop_on', displayName: '玩家上車', filename: 'user_hop_on-D1L_1wBN.mp3', category: '角色音效', icon: '🧑', description: '玩家加入遊戲音效' },
+  { name: 'user_hop_off', displayName: '玩家下車', filename: 'user_hop_off-jltqlRTg.mp3', category: '角色音效', icon: '🧑', description: '玩家離開遊戲音效' },
+  { name: 'others_hop_on', displayName: '其他人上車', filename: 'others_hop_on-BZB6aVMn.mp3', category: '角色音效', icon: '👥', description: '其他玩家加入音效' },
+  { name: 'others_hop_off', displayName: '其他人下車', filename: 'others_hop_off-B0ltzgMH.mp3', category: '角色音效', icon: '👥', description: '其他玩家離開音效' },
 ]
+
+// 響應式音效資源列表 - 會根據當前素材包自動更新路徑
+const audioFiles = computed<AudioResource[]>(() => {
+  return audioConfigs.map(config => ({
+    name: config.name,
+    displayName: config.displayName,
+    path: assetPackStore.getAudioPath(config.filename),
+    category: config.category,
+    icon: config.icon,
+    description: config.description
+  }))
+})
 
 // Spine 動畫資源數據
 const spineAnimations: SpineResource[] = [
@@ -526,9 +557,9 @@ const spineAnimations: SpineResource[] = [
 
 // 過濾後的資源
 const filteredImages = computed(() => {
-  if (!imageSearch.value) return imageFiles
+  if (!imageSearch.value) return imageFiles.value
   const search = imageSearch.value.toLowerCase()
-  return imageFiles.filter(img => 
+  return imageFiles.value.filter(img => 
     img.displayName.toLowerCase().includes(search) || 
     img.category.toLowerCase().includes(search) ||
     img.name.toLowerCase().includes(search)
@@ -536,9 +567,9 @@ const filteredImages = computed(() => {
 })
 
 const filteredAudio = computed(() => {
-  if (!audioSearch.value) return audioFiles
+  if (!audioSearch.value) return audioFiles.value
   const search = audioSearch.value.toLowerCase()
-  return audioFiles.filter(audio => 
+  return audioFiles.value.filter(audio => 
     audio.displayName.toLowerCase().includes(search) || 
     audio.category.toLowerCase().includes(search) ||
     audio.description.toLowerCase().includes(search)

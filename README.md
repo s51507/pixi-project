@@ -14,16 +14,19 @@
 ## 🚀 快速開始
 
 ### 安裝依賴
+
 ```bash
 pnpm install
 ```
 
 ### 啟動開發服務器
+
 ```bash
 pnpm run dev
 ```
 
 ### 構建生產版本
+
 ```bash
 pnpm run build
 ```
@@ -34,8 +37,7 @@ pnpm run build
 src/
 ├── components/           # Vue 組件
 │   └── animation/       # 動畫相關組件
-│       ├── SimpleSpineTest.vue      # 原始 Spine 播放器
-│       └── SimpleSpineRefactored.vue # 重構版播放器（推薦）
+│       └── SimpleSpineRefactored.vue # Spine 動畫播放器
 ├── pages/               # 頁面組件
 │   ├── (home).vue       # 主頁
 │   ├── spine-showcase.vue  # Spine 動畫展示
@@ -73,6 +75,7 @@ utils/pixi 是本專案的核心工具集，將 PixiJS 和 Spine 的複雜操作
 ### 📄 模組說明
 
 #### 1. application.ts - PixiJS 應用管理
+
 ```typescript
 // 創建 PixiJS 應用
 const result = await createPixiApp({
@@ -89,11 +92,13 @@ destroyPixiApp(app, logFunction)
 ```
 
 **主要功能：**
+
 - 自動檢測最佳渲染器（WebGPU > WebGL）
 - 錯誤處理和資源清理
 - 統一的配置接口
 
 #### 2. spine.ts - Spine 動畫工具
+
 ```typescript
 // 創建 Spine 動畫
 const result = await createSpineAnimation({
@@ -117,12 +122,14 @@ applySpineTransform(spine, {
 ```
 
 **主要功能：**
+
 - 統一的 Spine 創建流程
 - 動畫播放控制
 - 變換管理
 - 錯誤處理
 
 #### 3. effects.ts - 特效系統
+
 ```typescript
 // 創建漂浮效果
 const floatState = createFloatEffect(
@@ -162,12 +169,14 @@ effectManager.stopEffect('float')
 ```
 
 **主要功能：**
+
 - 漂浮效果（正弦波運動）
 - 震動效果（隨機震動 + 衰減）
 - 特效管理器（統一管理多個特效）
 - 可配置的參數
 
 #### 4. boneTracker.ts - 骨骼追蹤工具 ⭐
+
 ```typescript
 // 創建骨骼追蹤器
 const boneTracker = createBoneTracker({
@@ -195,6 +204,7 @@ boneTracker.stopTracking()
 ```
 
 **主要功能：**
+
 - 自動選擇最佳追蹤骨骼
 - 實時座標轉換（Spine → PixiJS）
 - 移動骨骼檢測
@@ -202,6 +212,7 @@ boneTracker.stopTracking()
 - 資源自動清理
 
 #### 5. logger.ts - 日誌工具
+
 ```typescript
 // 創建日誌器
 const logger = createLogger(50) // 保留 50 條日誌
@@ -222,12 +233,14 @@ const logFunction = logger.createLogFunction()
 ```
 
 **主要功能：**
+
 - 分級日誌（info、warn、error）
 - 自動時間戳
 - 響應式日誌列表
 - 數量限制和自動清理
 
 #### 6. assets.ts - 資源管理
+
 ```typescript
 // 載入 Spine 資源
 const assets = await loadSpineAssets({
@@ -244,12 +257,14 @@ await preloadAssetsToCache([
 ```
 
 **主要功能：**
+
 - 統一的資源載入接口
 - 緩存管理
 - 錯誤處理
 - 載入進度追蹤
 
 #### 7. background.ts - 背景管理
+
 ```typescript
 // 創建背景管理器
 const backgroundManager = new BackgroundManager({
@@ -272,13 +287,16 @@ backgroundManager.reset()
 ```
 
 **主要功能：**
+
 - 地面/天空背景切換
 - 滾動動畫效果
 - 速度控制
 - 狀態管理
 
 #### 8. scene.ts - 場景管理
+
 複雜的場景狀態管理，包含：
+
 - 場景狀態機（idle、ready、countdown、flying、exploded）
 - 角色動畫管理
 - 音頻管理
@@ -287,6 +305,7 @@ backgroundManager.reset()
 ### 🎯 使用範例
 
 #### 基本 Spine 動畫播放
+
 ```vue
 <script setup lang="ts">
 import { 
@@ -317,6 +336,7 @@ async function initAnimation() {
 ```
 
 #### 帶特效的動畫
+
 ```vue
 <script setup lang="ts">
 import { 
@@ -346,6 +366,7 @@ async function initWithEffects() {
 ```
 
 #### 骨骼追蹤文字跟隨
+
 ```vue
 <script setup lang="ts">
 import { createBoneTracker } from '@/utils/pixi/boneTracker'
@@ -372,11 +393,13 @@ async function initBoneTracking() {
 ## 🎮 頁面功能
 
 ### 主頁 (/)
+
 - 專案介紹和功能概覽
 - 導航到各個展示頁面
 - 技術架構說明
 
 ### Spine 動畫展示 (/spine-showcase)
+
 - 多種 Spine 動畫展示
 - 完整的播放控制面板
 - 變換控制（縮放、旋轉、位置）
@@ -384,23 +407,27 @@ async function initBoneTracking() {
 - 實時調試日誌
 
 ### 骨骼追蹤測試 (/jump-test)
+
 - 骨骼追蹤功能演示
 - 文字跟隨動畫軌道
 - 移動骨骼檢測
 - 座標系統調試
 
 ### 整合場景 (/integrated-scene)
+
 - 完整的火箭發射場景
 - 背景音樂和音效
 - 角色互動系統
 - 複雜的狀態管理
 
 ### 資源庫 (/assets-gallery)
+
 - 所有 Spine 動畫資源
 - 圖片和音效資源
 - 資源使用指南
 
 ### 重構演示 (/refactored-demo)
+
 - 展示重構後的代碼架構
 - 新舊版本對比
 - 最佳實踐說明
@@ -410,6 +437,7 @@ async function initBoneTracking() {
 ### 添加新的動畫
 
 1. **準備資源**
+
    ```
    public/cashorcrash2/spine/新動畫名稱/
    ├── skeleton.skel
@@ -418,13 +446,14 @@ async function initBoneTracking() {
    ```
 
 2. **使用工具函數**
-   ```typescript
+
+```typescript
    const { spine, animations } = await createSpineAnimation({
      skelPath: '/cashorcrash2/spine/新動畫名稱/skeleton.skel',
      atlasPath: '/cashorcrash2/spine/新動畫名稱/skeleton.atlas',
      imagePath: '/cashorcrash2/spine/新動畫名稱/skeleton.png'
-   })
-   ```
+})
+```
 
 3. **添加到展示頁面**
    更新 `spine-showcase.vue` 的動畫列表
@@ -432,6 +461,7 @@ async function initBoneTracking() {
 ### 創建新的特效
 
 1. **在 effects.ts 中添加新函數**
+
    ```typescript
    export function createNewEffect(spine: Spine, config: NewEffectConfig) {
      // 特效邏輯
@@ -443,6 +473,7 @@ async function initBoneTracking() {
    ```
 
 2. **在組件中使用**
+
    ```typescript
    const effectState = createNewEffect(spine, config)
    effectManager.addEffect('newEffect', effectState)
@@ -451,18 +482,21 @@ async function initBoneTracking() {
 ### 調試技巧
 
 1. **啟用日誌**
+
    ```typescript
    const logger = createLogger(100)
    // 在所有工具函數中傳入 logger.createLogFunction()
    ```
 
 2. **檢查渲染器信息**
+
    ```typescript
    const rendererInfo = getRendererInfo()
    console.log(rendererInfo)
    ```
 
 3. **骨骼位置調試**
+
    ```typescript
    boneTracker.checkAllBonePositions()
    ```
@@ -470,15 +504,18 @@ async function initBoneTracking() {
 ## 🚀 性能優化
 
 ### 渲染器選擇
+
 - 自動選擇最佳渲染器（WebGPU > WebGL）
 - 支援回退機制
 
 ### 資源管理
+
 - 自動資源緩存
 - 組件銷毀時自動清理
 - 避免記憶體洩漏
 
 ### 動畫優化
+
 - 按需啟動特效
 - 自動停止非活動動畫
 - 合理的更新頻率

@@ -8,6 +8,9 @@
         </p>
       </div>
 
+      <!-- 素材包切換 -->
+      <AssetPackSwitch class="mb-6" />
+
       <!-- 重構版組件 -->
       <div class="bg-gray-800 rounded-lg p-6">
         <SimpleSpineRefactored
@@ -16,6 +19,7 @@
           :skel-path="animationData.skelPath"
           :width="800"
           :height="600"
+          :key="`refactored-${assetPackStore.currentPack}`"
         />
       </div>
 
@@ -90,13 +94,17 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import SimpleSpineRefactored from '@/components/animation/SimpleSpineRefactored.vue'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
+import { useAssetPackStore } from '@/stores/assetPack'
 
-// 使用火箭動畫作為演示
-const animationData = {
-  atlasPath: '/cashorcrash2/spine/rocket_v6/skeleton.atlas',
-  imagePath: '/cashorcrash2/spine/rocket_v6/skeleton.png',
-  skelPath: '/cashorcrash2/spine/rocket_v6/skeleton.skel'
-}
+// Store
+const assetPackStore = useAssetPackStore()
+
+// 響應式動畫數據 - 會根據當前素材包自動更新
+const animationData = computed(() => {
+  return assetPackStore.getSpineAssets('rocket_v6')
+})
 </script>

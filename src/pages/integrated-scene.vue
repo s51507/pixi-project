@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-white relative overflow-hidden" :style="{ backgroundImage: `url(/cashorcrash2/avif/assets/bg/full_bg-B3-suPnV.avif)`, backgroundSize: 'cover', backgroundPosition: 'center' }">
+  <div class="min-h-screen text-white relative overflow-hidden" :style="{ backgroundImage: backgroundImage, backgroundSize: 'cover', backgroundPosition: 'center' }">
     <!-- PixiJS Canvas 游戲本體尺寸 540x950 居中 -->
     <canvas 
       ref="canvasRef" 
@@ -48,6 +48,9 @@
             <span class="text-2xl font-bold text-yellow-400">{{ Math.ceil(countdown) }}</span>
           </div>
         </div>
+
+        <!-- 素材包切換 -->
+        <AssetPackSwitch />
 
         <!-- 音量控制 -->
         <div class="bg-black/60 backdrop-blur-sm rounded-lg p-2 flex items-center gap-3">
@@ -242,8 +245,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import AssetPackSwitch from '@/components/AssetPackSwitch.vue'
+import { useAssetPackStore } from '@/stores/assetPack'
 import type { Application } from 'pixi.js'
 import type { Spine } from '@esotericsoftware/spine-pixi-v8'
 import { 
@@ -262,8 +267,7 @@ import {
   CountdownTimer,
   CharacterAnimationManager,
   SceneStateManager,
-  type AudioAssets,
-  type SceneConfig
+  type AudioAssets
 } from '@/utils/pixi/scene'
 
 // 響應式狀態
@@ -274,9 +278,17 @@ const volume = ref(70)
 const showDebug = ref(false)
 const flyingSpeed = ref(5) // 飛行背景速度（預設 5x）
 
+// Store
+const assetPackStore = useAssetPackStore()
+
 // 游戲本體尺寸（540x950比例）
 const gameWidth = ref(540)
 const gameHeight = ref(950)
+
+// 響應式背景圖片
+const backgroundImage = computed(() => {
+  return `url(${assetPackStore.getImagePath('bg/full_bg-B3-suPnV.avif')})`
+})
 
 // 響應式調整游戲尺寸
 const updateGameSize = () => {
@@ -306,22 +318,27 @@ const sceneStateManager = new SceneStateManager(logger.createLogFunction())
 const countdownTimer = new CountdownTimer(logger.createLogFunction())
 const characterManager = new CharacterAnimationManager(logger.createLogFunction())
 
-// 音頻資源配置
-const audioAssets: AudioAssets = {
-  bgm_open: '/cashorcrash2/mp3/assets/bgm_open-DYI02Dgc.mp3',
-  bgm_fly: '/cashorcrash2/mp3/assets/bgm_fly-DX4muDxO.mp3',
-  rocket_prelaunch_beginning: '/cashorcrash2/mp3/assets/rocket_prelaunch_beginning-CBWMXJzv.mp3',
-  rocket_prelaunch_launching: '/cashorcrash2/mp3/assets/rocket_prelaunch_launching-CbFaD9b4.mp3',
-  countdown: '/cashorcrash2/mp3/assets/countdown-S5DFRcF0.mp3',
-  user_hop_on: '/cashorcrash2/mp3/assets/user_hop_on-D1L_1wBN.mp3',
-  user_hop_off: '/cashorcrash2/mp3/assets/user_hop_off-jltqlRTg.mp3',
-  others_hop_on: '/cashorcrash2/mp3/assets/others_hop_on-BZB6aVMn.mp3',
-  others_hop_off: '/cashorcrash2/mp3/assets/others_hop_off-B0ltzgMH.mp3',
-  rocket_explode: '/cashorcrash2/mp3/assets/rocket_explode-DyCSKWjQ.mp3',
-  click: '/cashorcrash2/mp3/assets/click-yOjLuJq2.mp3'
+// 響應式音頻資源配置
+const audioAssets = computed<AudioAssets>(() => ({
+  bgm_open: assetPackStore.getAudioPath('bgm_open-DYI02Dgc.mp3'),
+  bgm_fly: assetPackStore.getAudioPath('bgm_fly-DX4muDxO.mp3'),
+  rocket_prelaunch_beginning: assetPackStore.getAudioPath('rocket_prelaunch_beginning-CBWMXJzv.mp3'),
+  rocket_prelaunch_launching: assetPackStore.getAudioPath('rocket_prelaunch_launching-CbFaD9b4.mp3'),
+  countdown: assetPackStore.getAudioPath('countdown-S5DFRcF0.mp3'),
+  user_hop_on: assetPackStore.getAudioPath('user_hop_on-D1L_1wBN.mp3'),
+  user_hop_off: assetPackStore.getAudioPath('user_hop_off-jltqlRTg.mp3'),
+  others_hop_on: assetPackStore.getAudioPath('others_hop_on-BZB6aVMn.mp3'),
+  others_hop_off: assetPackStore.getAudioPath('others_hop_off-B0ltzgMH.mp3'),
+  rocket_explode: assetPackStore.getAudioPath('rocket_explode-DyCSKWjQ.mp3'),
+  click: assetPackStore.getAudioPath('click-yOjLuJq2.mp3')
+}))
+
+// 初始化函數
+function createAudioManager() {
+  return new AudioManager(audioAssets.value, logger.createLogFunction())
 }
 
-const audioManager = new AudioManager(audioAssets, logger.createLogFunction())
+let audioManager = createAudioManager()
 
 // 角色狀態追蹤
 const characterStates = reactive({
@@ -330,12 +347,7 @@ const characterStates = reactive({
   npc: { active: false, onRocket: false }
 })
 
-// 場景配置
-const sceneConfig: SceneConfig = {
-  countdownDuration: 5, // 5秒倒數
-  audioAssets,
-  logger: logger.createLogFunction()
-}
+// 場景配置已內聯到使用位置
 
 // 初始化場景
 async function initScene(): Promise<void> {
@@ -374,10 +386,11 @@ async function initScene(): Promise<void> {
     await backgroundManager.setGroundBackground()
 
     // 3. 創建火箭動畫
+    const rocketAssets = assetPackStore.getSpineAssets('rocket_v6')
     const rocketResult = await createSpineAnimation({
-      skelPath: '/cashorcrash2/spine/rocket_v6/skeleton.skel',
-      atlasPath: '/cashorcrash2/spine/rocket_v6/skeleton.atlas',
-      imagePath: '/cashorcrash2/spine/rocket_v6/skeleton.png',
+      skelPath: rocketAssets.skelPath,
+      atlasPath: rocketAssets.atlasPath,
+      imagePath: rocketAssets.imagePath,
       logger: logger.createLogFunction()
     })
     
@@ -526,7 +539,7 @@ function startCountdown(): void {
   let lastPlayedSecond = -1 // 記錄上次播放音效的秒數，避免重複播放
   
   countdownTimer.start(
-    sceneConfig.countdownDuration,
+    5, // 倒數時間
     (remaining) => {
       countdown.value = remaining
       
@@ -665,10 +678,11 @@ async function createAndMoveCharacter(characterId: string, type: CharacterType, 
     }
 
     // 創建角色動畫
+    const characterAssets = assetPackStore.getSpineAssets(animationPath)
     const characterResult = await createSpineAnimation({
-      skelPath: `/cashorcrash2/spine/${animationPath}/skeleton.skel`,
-      atlasPath: `/cashorcrash2/spine/${animationPath}/skeleton.atlas`,
-      imagePath: `/cashorcrash2/spine/${animationPath}/skeleton.png`,
+      skelPath: characterAssets.skelPath,
+      atlasPath: characterAssets.atlasPath,
+      imagePath: characterAssets.imagePath,
       logger: logger.createLogFunction()
     })
     
@@ -926,6 +940,27 @@ onMounted(() => {
   
   // 監聽窗口調整事件
   window.addEventListener('resize', updateGameSize)
+})
+
+// 監聽素材包變化並重新初始化場景
+watch(() => assetPackStore.currentPack, async (newPack, oldPack) => {
+  if (oldPack && newPack !== oldPack) {
+    console.log(`🎨 素材包切換: ${oldPack} → ${newPack}，重新初始化場景`)
+    
+    // 清理現有場景
+    cleanup()
+    
+    // 重新初始化 audioManager 使用新的素材包路徑
+    audioManager = createAudioManager()
+    
+    // 重置遊戲狀態
+    currentState.value = SceneState.IDLE
+    countdown.value = 0
+    
+    // 重新初始化場景
+    updateGameSize()
+    await initScene()
+  }
 })
 
 onUnmounted(() => {

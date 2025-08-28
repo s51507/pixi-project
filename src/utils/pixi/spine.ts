@@ -1,7 +1,6 @@
 /**
  * Spine 動畫相關工具函數
  */
-import * as PIXI from 'pixi.js'
 import * as SPINE from '@esotericsoftware/spine-pixi-v8'
 import { loadSpineAssets, type SpineAssets, type LoadedAssets } from './assets'
 
@@ -109,6 +108,27 @@ export function applySpineTransform(
   const log = logger || console.log
   
   try {
+    // 設置錨點為中心，確保動畫以中心為基準進行變換
+    if (spine.pivot) {
+      // 嘗試從骨骼計算更準確的中心，如果失敗則使用邊界框
+      try {
+        // 首先嘗試使用根骨骼的位置
+        const rootBone = spine.skeleton.getRootBone()
+        if (rootBone) {
+          // 使用根骨骼作為參考點，通常更準確
+          spine.pivot.set(0, 0)
+        } else {
+          // 如果沒有根骨骼，使用邊界框
+          const bounds = spine.getBounds()
+          spine.pivot.set(bounds.width / 2, bounds.height / 2)
+        }
+      } catch {
+        // 如果骨骼獲取失敗，回退到邊界框方法
+        const bounds = spine.getBounds()
+        spine.pivot.set(bounds.width / 2, bounds.height / 2)
+      }
+    }
+    
     if (transform.x !== undefined) spine.x = transform.x
     if (transform.y !== undefined) spine.y = transform.y
     if (transform.rotation !== undefined) spine.rotation = transform.rotation
