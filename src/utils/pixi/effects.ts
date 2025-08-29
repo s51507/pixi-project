@@ -56,7 +56,8 @@ export function createFloatEffect(
     
     spine.x = newX
     spine.y = newY
-    spine.rotation = newRotation
+    // 先不轉向
+    // spine.rotation = newRotation
     
     // 調用更新回調
     onUpdate?.(newX, newY, newRotation)

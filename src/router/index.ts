@@ -33,6 +33,16 @@ const router = createRouter({
       name: 'jump-test',
       component: () => import('../pages/jump-test.vue'),
     },
+    {
+      path: '/funky-rocket-demo',
+      name: 'funky-rocket-demo',
+      component: () => import('../pages/funky-rocket-demo.vue'),
+    },
+    {
+      path: '/funky-rocket-showcase',
+      name: 'funky-rocket-showcase',
+      component: () => import('../pages/funky-rocket-showcase.vue'),
+    },
   ],
 })
 

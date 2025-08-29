@@ -147,7 +147,7 @@ export function applySpineTransform(
       }
     }
     
-    log(`🔄 Spine 變換已應用: 位置(${spine.x}, ${spine.y}), 縮放(${spine.scale.x}, ${spine.scale.y}), 旋轉(${spine.rotation})`)
+    // log(`🔄 Spine 變換已應用: 位置(${spine.x}, ${spine.y}), 縮放(${spine.scale.x}, ${spine.scale.y}), 旋轉(${spine.rotation})`)
   } catch (error) {
     log(`❌ 應用 Spine 變換失敗: ${error}`)
   }

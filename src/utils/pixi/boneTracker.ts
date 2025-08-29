@@ -63,7 +63,7 @@ export class BoneTracker {
         ...textOffset
       },
       textOffsetY: textOffset.y || 60, // 保持向後兼容
-      enableDebugLog: true,
+      enableDebugLog: false,
       debugLogFrequency: 0.3,
       ...options
     }
