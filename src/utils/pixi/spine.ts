@@ -57,25 +57,50 @@ export async function createSpineAnimation(config: SpineConfig): Promise<CreateS
  * 播放指定動畫
  */
 export function playSpineAnimation(
-  spine: SPINE.Spine, 
-  animationName: string, 
+  spine: SPINE.Spine,
+  animationName: string,
   loop: boolean = true,
   logger?: (message: string) => void
-): boolean {
+): SPINE.TrackEntry | null {
   const log = logger || console.log
   
   try {
     if (!spine.skeleton.data.findAnimation(animationName)) {
       log(`❌ 動畫 "${animationName}" 不存在`)
-      return false
+      return null
     }
     
-    spine.state.setAnimation(0, animationName, loop)
+    const animation = spine.state.setAnimation(0, animationName, loop)
     log(`🎬 播放動畫: ${animationName} (循環: ${loop})`)
-    return true
+    return animation
   } catch (error) {
     log(`❌ 播放動畫失敗: ${error}`)
-    return false
+    return null
+  }
+}
+
+export function playSpineAnimationWithTrack(
+  spine: SPINE.Spine,
+  animationName: string,
+  loop: boolean = true,
+  track: number = 1,
+  delay: number = 0,
+  logger?: (message: string) => void
+): SPINE.TrackEntry | null {
+  const log = logger || console.log
+  
+  try {
+    if (!spine.skeleton.data.findAnimation(animationName)) {
+      log(`❌ 動畫 "${animationName}" 不存在`)
+      return null
+    }
+    
+    const animation = spine.state.addAnimation(track, animationName, loop, delay)
+    log(`🎬 新增軌道動畫: ${animationName} (循環: ${loop})`)
+    return animation
+  } catch (error) {
+    log(`❌ 播放動畫失敗: ${error}`)
+    return null
   }
 }
 
@@ -147,7 +172,7 @@ export function applySpineTransform(
       }
     }
     
-    log(`🔄 Spine 變換已應用: 位置(${spine.x}, ${spine.y}), 縮放(${spine.scale.x}, ${spine.scale.y}), 旋轉(${spine.rotation})`)
+    // log(`🔄 Spine 變換已應用: 位置(${spine.x}, ${spine.y}), 縮放(${spine.scale.x}, ${spine.scale.y}), 旋轉(${spine.rotation})`)
   } catch (error) {
     log(`❌ 應用 Spine 變換失敗: ${error}`)
   }
@@ -189,11 +214,27 @@ export function getSpineInfo(spine: SPINE.Spine): {
 /**
  * 清理 Spine 動畫狀態
  */
+export function clearSpineStateWithTrack(spine: SPINE.Spine, track: number, logger?: (message: string) => void): void {
+  const log = logger || console.log
+  
+  try {
+    spine.state.clearTrack(track)
+    spine.skeleton.setToSetupPose()
+    log('🧹 Spine 動畫狀態已清理')
+  } catch (error) {
+    log(`❌ 清理 Spine 動畫狀態失敗: ${error}`)
+  }
+}
+
+/**
+ * 清理全部 Spine 動畫狀態
+ */
 export function clearSpineState(spine: SPINE.Spine, logger?: (message: string) => void): void {
   const log = logger || console.log
   
   try {
     spine.state.clearTracks()
+    spine.skeleton.setToSetupPose()
     log('🧹 Spine 動畫狀態已清理')
   } catch (error) {
     log(`❌ 清理 Spine 動畫狀態失敗: ${error}`)

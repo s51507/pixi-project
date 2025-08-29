@@ -145,6 +145,62 @@
               </div>
             </RouterLink>
 
+            <!-- Funky Rocket 動態背景 -->
+            <RouterLink 
+              to="/funky-rocket-demo"
+              class="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur-lg rounded-3xl p-8 border border-yellow-400/30 hover:border-yellow-300/50 transition-all duration-300 hover:scale-[1.02] shadow-2xl block"
+            >
+              <div class="absolute top-4 right-4 bg-yellow-500/20 text-yellow-300 px-3 py-1.5 rounded-full text-sm font-semibold">
+                🎸 新功能
+              </div>
+              <div class="flex items-start gap-6">
+                <div class="text-6xl group-hover:scale-110 transition-transform duration-300">🎸</div>
+                <div class="flex-1 text-left">
+                  <h4 class="text-2xl font-bold mb-3 text-yellow-300">Funky Rocket 動態背景</h4>
+                  <p class="text-slate-300 text-base mb-4 leading-relaxed">
+                    展示 funkyRocket 素材包的動態背景切換功能：起飛前使用 bgDefault.png，起飛後循環播放 bgCycle.png
+                  </p>
+                  <div class="flex flex-wrap gap-3 mb-4">
+                    <span class="px-3 py-1.5 bg-yellow-500/30 rounded-full text-sm text-yellow-300 font-medium">🖼️ 動態背景</span>
+                    <span class="px-3 py-1.5 bg-orange-500/30 rounded-full text-sm text-orange-300 font-medium">🚀 起飛序列</span>
+                    <span class="px-3 py-1.5 bg-purple-500/30 rounded-full text-sm text-purple-300 font-medium">🔄 背景循環</span>
+                    <span class="px-3 py-1.5 bg-pink-500/30 rounded-full text-sm text-pink-300 font-medium">📦 素材包展示</span>
+                  </div>
+                  <div class="inline-flex items-center gap-2 text-yellow-400 font-semibold text-lg">
+                    立即體驗 <span class="group-hover:translate-x-2 transition-transform duration-300">→</span>
+                  </div>
+                </div>
+              </div>
+            </RouterLink>
+
+            <!-- Funky Rocket 動畫展示 -->
+            <RouterLink 
+              to="/funky-rocket-showcase"
+              class="group bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-lg rounded-3xl p-8 border border-blue-400/30 hover:border-blue-300/50 transition-all duration-300 hover:scale-[1.02] shadow-2xl block"
+            >
+              <div class="absolute top-4 right-4 bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-full text-sm font-semibold">
+                🆕 全新素材
+              </div>
+              <div class="flex items-start gap-6">
+                <div class="text-6xl group-hover:scale-110 transition-transform duration-300">🎸</div>
+                <div class="flex-1 text-left">
+                  <h4 class="text-2xl font-bold mb-3 text-blue-300">Funky Rocket 動畫展示</h4>
+                  <p class="text-slate-300 text-base mb-4 leading-relaxed">
+                    專門展示 Funky Rocket 素材包的全新三個核心動畫：walk、jump、rocket
+                  </p>
+                  <div class="flex flex-wrap gap-3 mb-4">
+                    <span class="px-3 py-1.5 bg-blue-500/30 rounded-full text-sm text-blue-300 font-medium">🚶 行走動畫</span>
+                    <span class="px-3 py-1.5 bg-green-500/30 rounded-full text-sm text-green-300 font-medium">🦘 跳躍動畫</span>
+                    <span class="px-3 py-1.5 bg-red-500/30 rounded-full text-sm text-red-300 font-medium">🚀 火箭動畫</span>
+                    <span class="px-3 py-1.5 bg-purple-500/30 rounded-full text-sm text-purple-300 font-medium">📦 簡化結構</span>
+                  </div>
+                  <div class="inline-flex items-center gap-2 text-blue-400 font-semibold text-lg">
+                    查看動畫 <span class="group-hover:translate-x-2 transition-transform duration-300">→</span>
+                  </div>
+                </div>
+              </div>
+            </RouterLink>
+
             <!-- 整合場景 -->
             <RouterLink 
               to="/integrated-scene"
@@ -260,6 +316,12 @@
             class="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
           >
             跳躍測試 →
+          </RouterLink>
+          <RouterLink 
+            to="/funky-rocket-demo" 
+            class="text-yellow-400 hover:text-yellow-300 text-sm font-medium transition-colors"
+          >
+            動態背景 →
           </RouterLink>
         </div>
       </div>

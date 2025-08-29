@@ -43,7 +43,7 @@ export interface SceneConfig {
 // 音頻管理器
 export class AudioManager {
   private audioCache = new Map<string, HTMLAudioElement>()
-  private currentBGM: HTMLAudioElement | null = null
+  private activeBGMs = new Map<string, HTMLAudioElement>() // 支援多個 BGM 同時播放
   private logger?: (message: string) => void
 
   constructor(assets: AudioAssets, logger?: (message: string) => void) {
@@ -61,23 +61,44 @@ export class AudioManager {
   }
 
   playBGM(key: string, loop: boolean = true): void {
-    this.stopBGM()
+    // 如果這個 BGM 已經在播放，先停止
+    this.stopBGM(key)
+    
     const audio = this.audioCache.get(key)
     if (audio) {
-      audio.loop = loop
-      audio.currentTime = 0
-      audio.play().catch(e => this.log(`BGM 播放失敗: ${e}`))
-      this.currentBGM = audio
-      this.log(`🎵 BGM 播放: ${key}`)
+      // 創建新的音頻實例以支援同時播放多個 BGM
+      const bgmInstance = audio.cloneNode() as HTMLAudioElement
+      bgmInstance.loop = loop
+      bgmInstance.currentTime = 0
+      // 確保新實例使用當前音量設定
+      bgmInstance.volume = audio.volume
+      bgmInstance.play().catch(e => this.log(`BGM 播放失敗: ${e}`))
+      
+      // 儲存到活躍 BGM 列表
+      this.activeBGMs.set(key, bgmInstance)
+      this.log(`🎵 BGM 播放: ${key} (目前播放 ${this.activeBGMs.size} 個 BGM)`)
     }
   }
 
-  stopBGM(): void {
-    if (this.currentBGM) {
-      this.currentBGM.pause()
-      this.currentBGM.currentTime = 0
-      this.currentBGM = null
-      this.log('🎵 BGM 已停止')
+  stopBGM(key?: string): void {
+    if (key) {
+      // 停止特定的 BGM
+      const bgm = this.activeBGMs.get(key)
+      if (bgm) {
+        bgm.pause()
+        bgm.currentTime = 0
+        this.activeBGMs.delete(key)
+        this.log(`🎵 BGM 已停止: ${key}`)
+      }
+    } else {
+      // 停止所有 BGM
+      this.activeBGMs.forEach((bgm, bgmKey) => {
+        bgm.pause()
+        bgm.currentTime = 0
+        this.log(`🎵 BGM 已停止: ${bgmKey}`)
+      })
+      this.activeBGMs.clear()
+      this.log('🎵 所有 BGM 已停止')
     }
   }
 
@@ -87,14 +108,24 @@ export class AudioManager {
       // 創建新的實例以支援重疊播放
       const soundInstance = audio.cloneNode() as HTMLAudioElement
       soundInstance.currentTime = 0
+      // 確保新實例使用當前音量設定
+      soundInstance.volume = audio.volume
       soundInstance.play().catch(e => this.log(`音效播放失敗: ${e}`))
       this.log(`🔊 音效播放: ${key}`)
     }
   }
 
   setVolume(volume: number): void {
+    const normalizedVolume = Math.max(0, Math.min(1, volume))
+    
+    // 設置預載入音頻的音量
     this.audioCache.forEach(audio => {
-      audio.volume = Math.max(0, Math.min(1, volume))
+      audio.volume = normalizedVolume
+    })
+    
+    // 設置正在播放的 BGM 音量
+    this.activeBGMs.forEach(bgm => {
+      bgm.volume = normalizedVolume
     })
   }
 
@@ -103,12 +134,16 @@ export class AudioManager {
   }
 
   dispose(): void {
+    // 停止所有 BGM
     this.stopBGM()
+    
+    // 清理預載入音頻
     this.audioCache.forEach(audio => {
       audio.pause()
       audio.src = ''
     })
     this.audioCache.clear()
+    
     this.log('🗑️ 音頻管理器已清理')
   }
 }
@@ -286,20 +321,20 @@ export class CharacterAnimationManager {
         // 根據請求的動畫類型選擇合適的備用動畫
         if (animationName === 'idle' || animationName === 'stand') {
           // 尋找待機類型的動畫
-          fallbackAnimation = animations.find(name => 
+          fallbackAnimation = animations.find((name: string) => 
             name.includes('idle') || 
             name.includes('stand') || 
             name.includes('walk')
           )
         } else if (animationName === 'walk') {
           // 尋找行走類型的動畫
-          fallbackAnimation = animations.find(name => 
+          fallbackAnimation = animations.find((name: string) => 
             name.includes('walk') || 
             name.includes('run')
           )
         } else if (animationName === 'jump') {
           // 尋找跳躍類型的動畫
-          fallbackAnimation = animations.find(name => 
+          fallbackAnimation = animations.find((name: string) => 
             name.includes('jump') || 
             name.includes('leap')
           )

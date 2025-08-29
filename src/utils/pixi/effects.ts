@@ -44,9 +44,9 @@ export function createFloatEffect(
     
     const elapsed = (Date.now() - state.startTime) * config.speed / 1000
     
-    // 使用不同的正弦波創建自然的漂浮效果
+    // 使用不同的正弦波創建自然的漂浮效果，調整相位讓初始值為 0
     const floatX = Math.sin(elapsed * 1.2) * config.range * 0.8
-    const floatY = Math.cos(elapsed * 0.8) * config.range
+    const floatY = (Math.cos(elapsed * 0.8) - 1) * config.range  // 減 1 讓初始值為 0
     const floatRotation = Math.sin(elapsed * 1.5) * 5 // 輕微的旋轉晃動
     
     // 應用漂浮偏移
@@ -54,15 +54,21 @@ export function createFloatEffect(
     const newY = config.baseY + floatY
     const newRotation = (floatRotation * Math.PI) / 180
     
+    // 直接設置 spine 位置而不通過回調，避免重複設置
     spine.x = newX
     spine.y = newY
-    spine.rotation = newRotation
+    // 先不轉向
+    // spine.rotation = newRotation
     
     // 調用更新回調
     onUpdate?.(newX, newY, newRotation)
     
     state.animationId = requestAnimationFrame(animate)
   }
+  
+  // 首先確保 spine 位置設置為基準位置，避免初始跳躍
+  spine.x = config.baseX
+  spine.y = config.baseY
   
   state.animationId = requestAnimationFrame(animate)
   return state
