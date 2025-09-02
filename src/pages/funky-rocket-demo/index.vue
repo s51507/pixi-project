@@ -852,7 +852,17 @@ async function streamerBoard(): Promise<void> {
   // 主播有上車過就不需要再播放了
   if (hasPlayedLaunchPlayer.value) return
 
-  playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
+  const trackEntry = playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
+  if (trackEntry) {
+    // 嘗試設定 mixBlend 為 normal，保持原始效果
+    if ((trackEntry as any).mixBlend !== undefined) {
+      (trackEntry as any).mixBlend = 'add'
+    }
+    
+    // 先0.5吧，看起來比較正常一點
+    trackEntry.alpha = 0.5  // 完全不透明
+    trackEntry.mixDuration = 0
+  }
   hasPlayedLaunchPlayer.value = true
 }
 
@@ -976,7 +986,19 @@ async function playerDisembark(): Promise<void> {
 async function streamerDisembark(): Promise<void> {
   if (hasPlayedLaunchPlayer.value) {
     hasPlayedLaunchPlayer.value = false
-    playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)!.reverse = true
+    const trackEntry = playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
+    if (trackEntry) {
+      // 反轉動畫
+      trackEntry.reverse = true
+      // 嘗試設定 mixBlend 為 normal，保持原始效果
+      if ((trackEntry as any).mixBlend !== undefined) {
+        (trackEntry as any).mixBlend = 'add'
+      }
+      
+      // 先0.5吧，看起來比較正常一點
+      trackEntry.alpha = 0.5
+      trackEntry.mixDuration = 0
+    }
     // 等launch_player動畫反轉播完
     await new Promise(resolve => setTimeout(resolve, 1500))
   }
