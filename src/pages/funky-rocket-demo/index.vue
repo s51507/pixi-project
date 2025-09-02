@@ -49,6 +49,7 @@ import BottomSheet from './components/BottomSheet.vue'
 import type { Application, Sprite } from 'pixi.js'
 import { Assets } from 'pixi.js'
 import * as PIXI from 'pixi.js'
+import { getRandomNum } from '@/utils'
 import { 
   createPixiApp, 
   destroyPixiApp,
@@ -693,7 +694,8 @@ async function animateCharacterJump(character: Character): Promise<void> {
     logger.info(`🎯 開始 ${character.type} 下車動畫，起始位置: (${character.position.x}, ${character.position.y})`)
     
     const isNpc = character.type === 'npc'
-    const animationName = isNpc ? 'jump_others' : 'jump_me'
+    const randomAnimationNumber = ['', 2, 3][getRandomNum(0, 3)]
+    const animationName = isNpc ? `jump_others${randomAnimationNumber}` : `jump_me${randomAnimationNumber}`
 
     // 播放跳躍動畫（原地跳躍）
     playSpineAnimation(character.spine, animationName, false)
@@ -1010,7 +1012,7 @@ async function streamerDisembark(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 1500))
   }
 
-  const character = await createCharacterJump('streamer', `streamer-disembark-${Date.now()}`)
+  const character = await createCharacterJump('streamer', `streamer-disembark-${Date.now()}`, '主播下車囉')
   if (!character) return
 
   await animateCharacterJump(character)
