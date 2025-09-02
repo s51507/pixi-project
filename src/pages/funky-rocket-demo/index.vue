@@ -23,6 +23,8 @@
       :currentState="currentState"
       :charactersOnBoard="charactersOnBoard"
       :isAnimating="isAnimating"
+      :scrollSpeed="scrollSpeed"
+      :isScrolling="isScrolling"
       @startGame="startGame"
       @playerBoard="playerBoard"
       @streamerBoard="streamerBoard"
@@ -128,7 +130,10 @@ const logger = createLogger()
 
 // 背景滾動狀態
 const isScrolling = ref(false)
-const scrollSpeed = ref(5) // 滾動速度 (加快飛行感)
+const scrollSpeed = ref(5) // 滾動速度 (初始值)
+const baseScrollSpeed = ref(5) // 基礎滾動速度
+const speedIncrease = ref(0.02) // 每幀增加的速度
+const maxScrollSpeed = ref(20) // 最大滾動速度
 
 // 音效管理 - 使用 AudioManager
 let audioManager: AudioManager | null = null
@@ -290,10 +295,17 @@ function startBackgroundScroll(): void {
   if (isScrolling.value) return
   
   isScrolling.value = true
+  // 重置速度到初始值
+  scrollSpeed.value = baseScrollSpeed.value
   logger.info('🌀 開始背景滾動')
   
   const scroll = () => {
     if (!isScrolling.value || !app) return
+    
+    // 逐漸增加滾動速度，直到達到最大值
+    if (scrollSpeed.value < maxScrollSpeed.value) {
+      scrollSpeed.value = Math.min(scrollSpeed.value + speedIncrease.value, maxScrollSpeed.value)
+    }
     
     // 滾動默認背景（bgDefault）
     if (defaultBackgroundSprite) {
@@ -1082,6 +1094,9 @@ async function resetGame(): Promise<void> {
   
   // 重置背景系統
   stopBackgroundScroll()
+  
+  // 重置滾動速度
+  scrollSpeed.value = baseScrollSpeed.value
   
   // 清理循環背景
   cycleBackgroundSprites.forEach(sprite => {

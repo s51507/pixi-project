@@ -129,6 +129,18 @@
               <span class="text-gray-400">動畫狀態:</span>
               <span class="ml-1 font-medium text-purple-400">{{ isAnimating ? '播放中' : '待機' }}</span>
             </div>
+            <div>
+              <span class="text-gray-400">飛行速度:</span>
+              <span class="ml-1 font-medium" :class="getSpeedColor()">
+                {{ isScrolling ? scrollSpeed.toFixed(1) : '0.0' }}
+              </span>
+            </div>
+            <div>
+              <span class="text-gray-400">背景滾動:</span>
+              <span class="ml-1 font-medium" :class="isScrolling ? 'text-green-400' : 'text-gray-400'">
+                {{ isScrolling ? '進行中' : '停止' }}
+              </span>
+            </div>
           </div>
           
           <!-- 角色狀態 -->
@@ -169,9 +181,11 @@ interface Props {
   currentState: GameState
   charactersOnBoard: CharacterType[]
   isAnimating: boolean
+  scrollSpeed: number
+  isScrolling: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 // Emits
 const emit = defineEmits<{
@@ -207,6 +221,16 @@ function getCharacterName(character: CharacterType): string {
     case 'npc': return '🤖 NPC'
     default: return '未知角色'
   }
+}
+
+function getSpeedColor(): string {
+  if (!props.isScrolling) return 'text-gray-400'
+  
+  const speed = props.scrollSpeed
+  if (speed <= 5) return 'text-cyan-400'      // 慢速 - 青色
+  else if (speed <= 10) return 'text-green-400'   // 中速 - 綠色
+  else if (speed <= 15) return 'text-yellow-400'  // 快速 - 黃色
+  else return 'text-red-400'                       // 極速 - 紅色
 }
 
 // 暴露狀態給父組件
