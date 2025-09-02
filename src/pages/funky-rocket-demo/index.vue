@@ -200,8 +200,9 @@ async function setDefaultBackground(): Promise<void> {
     const scale = Math.max(scaleX, scaleY) // 確保完全覆蓋
     
     defaultBackgroundSprite.scale.set(scale)
-    defaultBackgroundSprite.x = (gameWidth.value - texture.width * scale) / 2
-    defaultBackgroundSprite.y = (gameHeight.value - texture.height * scale) / 2
+    // 使用整數座標避免像素縫隙
+    defaultBackgroundSprite.x = Math.floor((gameWidth.value - texture.width * scale) / 2)
+    defaultBackgroundSprite.y = Math.floor((gameHeight.value - texture.height * scale) / 2)
     defaultBackgroundSprite.zIndex = -10 // 在最底層
     
     app.stage.addChild(defaultBackgroundSprite)
@@ -265,17 +266,16 @@ async function initCycleBackground(): Promise<void> {
     const scale = gameWidth.value / texture.width
     const scaledHeight = texture.height * scale
     
-    // 創建多個背景精靈用於循環，從畫面頂部開始接續 bgDefault
-    const numSprites = Math.ceil((gameHeight.value * 2) / scaledHeight) + 2 // 足夠的精靈確保循環
+    // 創建足夠多的背景精靈用於無縫循環
+    const numSprites = Math.ceil((gameHeight.value * 3) / scaledHeight) + 3 // 增加更多精靈確保無縫
     
     for (let i = 0; i < numSprites; i++) {
       const sprite = new PIXI.Sprite(texture)
       
       sprite.scale.set(scale)
       sprite.x = 0
-      // 第一個精靈從畫面上方外開始，滾動時會從上方進入
-      // 後續精靈依序向上排列，形成滾動隊列
-      sprite.y = -scaledHeight - (i * scaledHeight)
+      // 確保精靈之間無縫銜接，使用整數座標避免像素縫隙
+      sprite.y = Math.floor(-scaledHeight * (i + 1))
       sprite.zIndex = -5 // 在默認背景之上，但在其他元素之下
       
       cycleBackgroundSprites.push(sprite)
@@ -310,12 +310,6 @@ function startBackgroundScroll(): void {
     // 滾動默認背景（bgDefault）
     if (defaultBackgroundSprite) {
       defaultBackgroundSprite.y += scrollSpeed.value
-      
-      // 當默認背景移出下方時，移動到循環背景隊列上方
-      if (defaultBackgroundSprite.y > gameHeight.value) {
-        const topY = Math.min(...cycleBackgroundSprites.map(s => s.y))
-        defaultBackgroundSprite.y = topY - defaultBackgroundSprite.height
-      }
     }
     
     // 滾動前景雲朵，跟著 bgDefault 一起移動
@@ -326,14 +320,17 @@ function startBackgroundScroll(): void {
     
     // 滾動循環背景（bgCycle）
     cycleBackgroundSprites.forEach(sprite => {
-      sprite.y += scrollSpeed.value // 背景向下移動（y座標增加），創造火箭向上飛的效果
+      sprite.y += scrollSpeed.value
       
       // 當精靈完全移出下方時，移動到隊列最上方繼續循環
-      if (sprite.y > gameHeight.value) {
-        // 找到最上方的精靈位置（包含默認背景）
-        const allSprites = [...cycleBackgroundSprites].filter(s => s !== null)
-        const topY = Math.min(...allSprites.map(s => s!.y))
-        sprite.y = topY - sprite.height
+      if (sprite.y > gameHeight.value + sprite.height) {
+        // 找到所有精靈中最上方的位置（包含默認背景）
+        const allSprites = [defaultBackgroundSprite, ...cycleBackgroundSprites].filter(s => s !== null && s !== sprite)
+        if (allSprites.length > 0) {
+          const topY = Math.min(...allSprites.map(s => s!.y))
+          // 確保無縫銜接，使用整數座標避免像素縫隙
+          sprite.y = Math.floor(topY - sprite.height) + scrollSpeed.value
+        }
       }
     })
     
