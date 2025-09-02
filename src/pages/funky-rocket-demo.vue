@@ -63,13 +63,13 @@
           <div class="flex items-center gap-2">
             <input 
               type="range" 
-              v-model="volume" 
+              v-model="audioStore.volume" 
               @input="updateVolume"
               min="0" 
               max="100" 
               class="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
             >
-            <span class="text-xs text-gray-400 w-10">{{ volume }}%</span>
+            <span class="text-xs text-gray-400 w-10">{{ audioStore.volume }}%</span>
           </div>
         </div>
 
@@ -82,10 +82,10 @@
               <span class="text-xs text-gray-300">背景音樂</span>
               <button 
                 @click="toggleBGM()"
-                :class="bgmEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-500'"
+                :class="audioStore.bgmEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-500'"
                 class="px-3 py-1 text-xs rounded transition-colors"
               >
-                {{ bgmEnabled ? '開啟' : '關閉' }}
+                {{ audioStore.bgmEnabled ? '開啟' : '關閉' }}
               </button>
             </div>
             
@@ -94,10 +94,10 @@
               <span class="text-xs text-gray-300">音效聲音</span>
               <button 
                 @click="toggleSoundEffect()"
-                :class="soundEffectEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-500'"
+                :class="audioStore.soundEffectEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-500'"
                 class="px-3 py-1 text-xs rounded transition-colors"
               >
-                {{ soundEffectEnabled ? '開啟' : '關閉' }}
+                {{ audioStore.soundEffectEnabled ? '開啟' : '關閉' }}
               </button>
             </div>
           </div>
@@ -277,6 +277,7 @@ import { CountdownTimer, AudioManager, type AudioAssets } from '@/utils/pixi/sce
 import { createFloatEffect, type EffectState } from '@/utils/pixi/effects'
 import { createBoneTracker, type BoneTracker } from '@/utils/pixi/boneTracker'
 import { createPixiText, type CreateTextResult } from '@/utils/pixi/text'
+import { useAudioStore } from '@/stores/audio'
 
 // 遊戲狀態枚舉
 enum GameState {
@@ -319,11 +320,9 @@ const countdown = ref(0)
 const isAnimating = ref(false)
 const hasPlayedLaunchPlayer = ref(false) // 記錄是否已播放過 launch_player
 const charactersOnBoard = ref<CharacterType[]>([])
-const volume = ref(50)
 
-// 音效開關狀態
-const bgmEnabled = ref(true)        // BGM 總開關
-const soundEffectEnabled = ref(true) // 音效總開關
+// 使用音效 store
+const audioStore = useAudioStore()
 
 // 遊戲尺寸 - 保持 540:958 比例，高度跟 body 一樣
 const gameWidth = ref(540)
@@ -639,25 +638,26 @@ function stopRocketFloat(): void {
 function createAudioManager(): AudioManager {
   const manager = new AudioManager(audioAssets.value, logger.createLogFunction())
   // 立即應用當前音量設定
-  manager.setVolume(volume.value / 100)
+  manager.setVolume(audioStore.normalizedVolume)
   return manager
 }
 
 // 音量控制
 function updateVolume(): void {
   if (audioManager) {
-    audioManager.setVolume(volume.value / 100)
-    logger.info(`🔊 音量設置: ${volume.value}%`)
+    audioStore.setVolume(audioStore.volume) // 觸發 localStorage 保存
+    audioManager.setVolume(audioStore.normalizedVolume)
+    logger.info(`🔊 音量設置: ${audioStore.volume}%`)
   }
 }
 
 // BGM 總開關控制
 function toggleBGM(): void {
-  bgmEnabled.value = !bgmEnabled.value
+  audioStore.toggleBGM()
   
   if (!audioManager) return
   
-  if (bgmEnabled.value) {
+  if (audioStore.bgmEnabled) {
     // 根據當前狀態播放對應的 BGM
     if (currentState.value === GameState.BOARDING || currentState.value === GameState.COUNTDOWN || currentState.value === GameState.LAUNCHING) {
       audioManager.playBGM('bgm_open', true)
@@ -680,19 +680,19 @@ function toggleBGM(): void {
 
 // 音效總開關控制
 function toggleSoundEffect(): void {
-  soundEffectEnabled.value = !soundEffectEnabled.value
-  logger.info(`🔊 音效${soundEffectEnabled.value ? '已開啟' : '已關閉'}`)
+  audioStore.toggleSoundEffect()
+  logger.info(`🔊 音效${audioStore.soundEffectEnabled ? '已開啟' : '已關閉'}`)
 }
 
 // 安全播放 BGM（檢查開關狀態）
 function playBGM(key: string, loop: boolean = true): void {
-  if (!audioManager || !bgmEnabled.value) return
+  if (!audioManager || !audioStore.bgmEnabled) return
   audioManager.playBGM(key, loop)
 }
 
 // 安全播放音效（檢查開關狀態）
 function playSound(key: string): void {
-  if (!audioManager || !soundEffectEnabled.value) return
+  if (!audioManager || !audioStore.soundEffectEnabled) return
   audioManager.playSound(key)
 }
 
@@ -1090,7 +1090,7 @@ function startGame(): void {
   currentState.value = GameState.BOARDING
 
   // 播放開場BGM（如果開關啟用）
-  if (bgmEnabled.value) playBGM('bgm_open', true)
+  if (audioStore.bgmEnabled) playBGM('bgm_open', true)
 }
 
 // 玩家上車
@@ -1202,12 +1202,12 @@ async function launchRocket(): Promise<void> {
     }
 
     // 播放飛行BGM（如果開關啟用）
-    if (bgmEnabled.value) {
+    if (audioStore.bgmEnabled) {
       playBGM('bgm_fly', true)
     }
 
     // 播放火箭飛行音效（如果BGM開關啟用）
-    if (bgmEnabled.value) {
+    if (audioStore.bgmEnabled) {
       playBGM('rocket_fly', true)
     }
     
