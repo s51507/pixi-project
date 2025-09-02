@@ -112,10 +112,18 @@ const audioStore = useAudioStore()
 const gameWidth = ref(540)
 const gameHeight = ref(958)
 
-// 基礎偏移量，都要浮上來一點
-const baseOffsetY = ref(-35)
-// 基礎縮放，所有角色都會縮放這個值
-const baseScale = ref(0.65)
+// 設計基準尺寸 (設計稿的原始尺寸)
+const DESIGN_WIDTH = 540
+const DESIGN_HEIGHT = 958
+
+// 縮放因子
+const scaleFactorX = computed(() => gameWidth.value / DESIGN_WIDTH)
+const scaleFactorY = computed(() => gameHeight.value / DESIGN_HEIGHT)
+
+// 基礎偏移量，都要浮上來一點 (會根據縮放因子調整)
+const baseOffsetY = computed(() => -35 * scaleFactorY.value)
+// 基礎縮放，所有角色都會縮放這個值 (會根據縮放因子調整)
+const baseScale = computed(() => 0.65 * Math.min(scaleFactorX.value, scaleFactorY.value))
 
 // PixiJS 相關實例
 let app: Application | null = null
@@ -132,9 +140,9 @@ const logger = createLogger()
 // 背景滾動狀態
 const isScrolling = ref(false)
 const scrollSpeed = ref(5) // 滾動速度 (初始值)
-const baseScrollSpeed = ref(5) // 基礎滾動速度
-const speedIncrease = ref(0.02) // 每幀增加的速度
-const maxScrollSpeed = ref(20) // 最大滾動速度
+const baseScrollSpeed = computed(() => 5 * Math.min(scaleFactorX.value, scaleFactorY.value)) // 基礎滾動速度，根據縮放調整
+const speedIncrease = computed(() => 0.02 * Math.min(scaleFactorX.value, scaleFactorY.value)) // 每幀增加的速度，根據縮放調整
+const maxScrollSpeed = computed(() => 20 * Math.min(scaleFactorX.value, scaleFactorY.value)) // 最大滾動速度，根據縮放調整
 
 // 音效管理 - 使用 AudioManager
 let audioManager: AudioManager | null = null
@@ -356,7 +364,7 @@ function startRocketFloat(): void {
   rocketFloatEffect = createFloatEffect(
     rocketSpine,
     {
-      range: 15,    // 漂浮範圍 15px
+      range: 15 * Math.min(scaleFactorX.value, scaleFactorY.value),    // 漂浮範圍根據縮放因子調整
       speed: 1.2,   // 漂浮速度
       baseX: rocketSpine.x,
       baseY: rocketSpine.y
@@ -463,7 +471,7 @@ async function createCharacterWalk(type: CharacterType, id: string): Promise<Cha
     const spine = spineResult.spine
     // spine.zIndex = 2 // 角色在火箭之上
     
-    // 設定角色起始位置 - 所有角色都從正中間開始
+    // 設定角色起始位置 - 所有角色都從正中間開始 (考慮縮放因子)
     const scale = baseScale.value * 1.1  // 放大角色，讓它更明顯
     const startX = gameWidth.value / 2 // 從正中間開始
     const startY = gameHeight.value / 2 + baseOffsetY.value  // 接近地面位置 + 基礎偏移量
@@ -510,14 +518,14 @@ async function animateCharacterWalk(character: Character, direction: 'left' | 'r
       // 角色已在創建時播放 walk 動畫，這裡只需要移動
 
       const isNpc = direction !== 'left'
-      const directionOffsetX = isNpc ? 10 : -10
+      const directionOffsetX = (isNpc ? 10 : -10) * scaleFactorX.value // 偏移量也要縮放
 
       const animationName = isNpc ? 'others_walk' : 'me_walk'
 
       // 播放跳躍動畫（原地跳躍）
       playSpineAnimation(character.spine, animationName, false)
       
-      // 移動到火箭附近的地面位置
+      // 移動到火箭附近的地面位置 (考慮縮放因子)
       const targetX = gameWidth.value / 2 + directionOffsetX // 畫面水平中心點
       const targetY = gameHeight.value / 2 + baseOffsetY.value  // 畫面中心 + 基礎偏移量
       
@@ -646,7 +654,7 @@ async function createCharacterJump(type: CharacterType, id: string, followText: 
     const spine = spineResult.spine
     spine.zIndex = 2 // 角色在火箭之上
 
-    // 從火箭的實際位置開始
+    // 從火箭的實際位置開始 (考慮縮放因子)
     const scale = baseScale.value
     const startX = rocketSpine ? rocketSpine.x : gameWidth.value / 2
     const startY = rocketSpine ? rocketSpine.y : gameHeight.value / 2 + baseOffsetY.value
@@ -805,7 +813,7 @@ async function initScene(): Promise<void> {
     rocketSpine.zIndex = 1
     app.stage.addChild(rocketSpine)
     
-    // 設置火箭位置（居中）
+    // 設置火箭位置（居中，考慮縮放因子）
     applySpineTransform(rocketSpine, {
       x: gameWidth.value / 2,
       y: gameHeight.value / 2 + baseOffsetY.value,
@@ -1121,12 +1129,12 @@ async function resetGame(): Promise<void> {
     await setFrontCloud()
   }
   
-  // 重置火箭動畫和大小
+  // 重置火箭動畫和大小 (考慮縮放因子)
   if (rocketSpine) {
     clearSpineState(rocketSpine)
     playSpineAnimation(rocketSpine, 'launch', true)
     
-    // 恢復火箭到原始大小
+    // 恢復火箭到原始大小和位置
     applySpineTransform(rocketSpine, {
       x: gameWidth.value / 2,
       y: gameHeight.value / 2 + baseOffsetY.value,
@@ -1201,18 +1209,130 @@ function cleanup(): void {
   }
 }
 
-// 響應式更新遊戲尺寸 - 保持 540:958 比例，適應視窗高度
+// 響應式更新遊戲尺寸 - 保持 540:958 比例，確保完全顯示在螢幕內
 function updateGameSize(): void {
   const aspectRatio = 540 / 958 // 原始比例
+  const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   
-  // 以視窗高度為準，按比例計算寬度
-  gameHeight.value = viewportHeight
-  gameWidth.value = Math.round(viewportHeight * aspectRatio)
+  // 計算按高度和寬度縮放的尺寸
+  const heightBasedWidth = Math.round(viewportHeight * aspectRatio)
+  const widthBasedHeight = Math.round(viewportWidth / aspectRatio)
+  
+  // 選擇能完全顯示在螢幕內的尺寸
+  if (heightBasedWidth <= viewportWidth) {
+    // 以高度為準
+    gameHeight.value = viewportHeight
+    gameWidth.value = heightBasedWidth
+  } else {
+    // 以寬度為準
+    gameWidth.value = viewportWidth
+    gameHeight.value = widthBasedHeight
+  }
   
   // 更新 PixiJS 應用尺寸
   if (app) {
     app.renderer.resize(gameWidth.value, gameHeight.value)
+  }
+  
+  logger.info(`🖼️ 遊戲尺寸已更新: ${gameWidth.value}x${gameHeight.value} (視窗: ${viewportWidth}x${viewportHeight})`)
+  
+  // 重新繪製遊戲內容以適應新的縮放因子
+  updateGameContentScale()
+}
+
+// 更新遊戲內容縮放 - 重新計算所有元素的位置和大小
+function updateGameContentScale(): void {
+  logger.info(`🔄 更新遊戲內容縮放，縮放因子: ${scaleFactorX.value.toFixed(2)}x${scaleFactorY.value.toFixed(2)}`)
+  
+  // 1. 更新火箭位置和大小
+  if (rocketSpine) {
+    applySpineTransform(rocketSpine, {
+      x: gameWidth.value / 2,
+      y: gameHeight.value / 2 + baseOffsetY.value,
+      scaleX: baseScale.value,
+      scaleY: baseScale.value
+    })
+  }
+  
+  // 2. 更新背景
+  updateBackgroundScale()
+  
+  // 3. 更新前景雲朵
+  updateFrontCloudScale()
+  
+  // 4. 更新現有角色
+  updateCharactersScale()
+  
+  // 5. 重置滾動速度
+  if (isScrolling.value) {
+    scrollSpeed.value = baseScrollSpeed.value
+  }
+  
+  // 6. 更新火箭漂浮效果
+  if (rocketFloatEffect?.isActive) {
+    stopRocketFloat()
+    startRocketFloat()
+  }
+}
+
+// 更新背景縮放
+async function updateBackgroundScale(): Promise<void> {
+  if (!app) return
+  
+  // 更新默認背景
+  if (defaultBackgroundSprite) {
+    const texture = defaultBackgroundSprite.texture
+    const scaleX = gameWidth.value / texture.width
+    const scaleY = gameHeight.value / texture.height
+    const scale = Math.max(scaleX, scaleY)
+    
+    defaultBackgroundSprite.scale.set(scale)
+    defaultBackgroundSprite.x = Math.floor((gameWidth.value - texture.width * scale) / 2)
+    defaultBackgroundSprite.y = Math.floor((gameHeight.value - texture.height * scale) / 2)
+  }
+  
+  // 更新循環背景
+  if (cycleBackgroundSprites.length > 0) {
+    const texture = cycleBackgroundSprites[0].texture
+    const scale = gameWidth.value / texture.width
+    const scaledHeight = texture.height * scale
+    
+    cycleBackgroundSprites.forEach((sprite, i) => {
+      sprite.scale.set(scale)
+      sprite.x = 0
+      sprite.y = Math.floor(-scaledHeight * (i + 1))
+    })
+  }
+}
+
+// 更新前景雲朵縮放
+async function updateFrontCloudScale(): Promise<void> {
+  if (!app || !frontCloudSprite) return
+  
+  const texture = frontCloudSprite.texture
+  const scale = gameWidth.value / texture.width
+  const scaledHeight = texture.height * scale
+  const maxHeight = gameHeight.value * 0.5
+  
+  frontCloudSprite.width = gameWidth.value
+  frontCloudSprite.height = Math.min(scaledHeight, maxHeight)
+  frontCloudSprite.x = 0
+  frontCloudSprite.y = gameHeight.value - frontCloudSprite.height
+}
+
+// 更新現有角色縮放
+function updateCharactersScale(): void {
+  for (const character of characters.values()) {
+    if (character.spine) {
+      const isNpc = character.type === 'npc'
+      applySpineTransform(character.spine, {
+        x: character.spine.x, // 保持當前位置
+        y: character.spine.y, // 保持當前位置  
+        scaleX: isNpc ? -baseScale.value : baseScale.value,
+        scaleY: baseScale.value
+      })
+    }
   }
 }
 
