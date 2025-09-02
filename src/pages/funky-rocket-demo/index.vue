@@ -871,8 +871,7 @@ async function streamerBoard(): Promise<void> {
       (trackEntry as any).mixBlend = 'add'
     }
     
-    // 先0.5吧，看起來比較正常一點
-    trackEntry.alpha = 0.5  // 完全不透明
+    trackEntry.alpha = 1  // 完全不透明
     trackEntry.mixDuration = 0
   }
   hasPlayedLaunchPlayer.value = true
@@ -1007,8 +1006,7 @@ async function streamerDisembark(): Promise<void> {
         (trackEntry as any).mixBlend = 'add'
       }
       
-      // 先0.5吧，看起來比較正常一點
-      trackEntry.alpha = 0.5
+      trackEntry.alpha = 1
       trackEntry.mixDuration = 0
     }
     // 等launch_player動畫反轉播完
