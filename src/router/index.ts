@@ -36,7 +36,7 @@ const router = createRouter({
     {
       path: '/funky-rocket-demo',
       name: 'funky-rocket-demo',
-      component: () => import('../pages/funky-rocket-demo.vue'),
+      component: () => import('../pages/funky-rocket-demo/index.vue'),
     },
     {
       path: '/funky-rocket-showcase',
