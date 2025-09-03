@@ -67,18 +67,28 @@ import { createBoneTracker } from '@/utils/pixi/boneTracker'
 import { createPixiText } from '@/utils/pixi/text'
 import { GameState, type CharacterType, type Character, type FollowTextResult } from './types'
 import { useAudio } from './hooks/useAudio'
+import { useGameState } from './hooks/useGameState'
 
 // 注意：此頁面固定使用 funkyRocket 素材包
 
 // Canvas 引用
 const canvasRef = ref<HTMLCanvasElement>()
 
-// 遊戲狀態
-const currentState = ref<GameState>(GameState.IDLE)
-const countdown = ref(0)
-const isAnimating = ref(false)
-const hasPlayedLaunchPlayer = ref(false) // 記錄是否已播放過 launch_player
-const charactersOnBoard = ref<CharacterType[]>([])
+// 遊戲狀態管理
+const {
+  currentState,
+  countdown,
+  isAnimating,
+  hasPlayedLaunchPlayer,
+  charactersOnBoard,
+  setState,
+  setCountdown,
+  setAnimating,
+  setLaunchPlayerPlayed,
+  addCharacterToBoard,
+  removeCharacterFromBoard,
+  resetGameState
+} = useGameState()
 
 // 使用音效 hooks
 const {
@@ -808,7 +818,7 @@ async function initScene(): Promise<void> {
     // 5. 初始化倒數計時器
     countdownTimer = new CountdownTimer()
     
-    currentState.value = GameState.IDLE
+    setState(GameState.IDLE)
     logger.info('✅ Funky Rocket 遊戲場景初始化完成')
     
   } catch (error) {
@@ -823,7 +833,7 @@ function startGame(): void {
   if (currentState.value !== GameState.IDLE) return
   
   logger.info('🎮 開始 Funky Rocket 遊戲')
-  currentState.value = GameState.BOARDING
+  setState(GameState.BOARDING)
 
   // 播放開場BGM（如果開關啟用）
   if (bgmEnabled.value) playBGM('bgm_open', true)
@@ -834,6 +844,7 @@ async function playerBoard(): Promise<void> {
   const character = await createCharacterWalk('player', `player-${Date.now()}`)
   if (!character) return
 
+  addCharacterToBoard('player')
   playSound('button_bet') // 玩家上車音效(投注)
   await animateCharacterWalk(character, 'left')
   playSound('into') // 角色進艙門音效
@@ -845,6 +856,8 @@ async function streamerBoard(): Promise<void> {
   const character = await createCharacterWalk('streamer', `streamer-${Date.now()}`)
   if (!character) return
 
+  addCharacterToBoard('streamer')
+  
   // 等待主播上車動畫完全完成
   await animateCharacterWalk(character, 'left')
   playSound('into') // 角色進艙門音效
@@ -863,7 +876,7 @@ async function streamerBoard(): Promise<void> {
     trackEntry.alpha = 1  // 完全不透明
     trackEntry.mixDuration = 0
   }
-  hasPlayedLaunchPlayer.value = true
+  setLaunchPlayerPlayed(true)
 }
 
 // NPC上車
@@ -872,6 +885,7 @@ async function npcBoard(): Promise<void> {
   const character = await createCharacterWalk('npc', `npc-${Date.now()}`)
   if (!character) return
 
+  addCharacterToBoard('npc')
   await animateCharacterWalk(character, 'right')
   playSound('into') // 角色進艙門音效
 }
@@ -881,7 +895,7 @@ function startCountdown(): void {
   if (currentState.value === GameState.COUNTDOWN || !countdownTimer) return
   
   logger.info('⏰ 開始倒數計時')
-  currentState.value = GameState.COUNTDOWN
+  setState(GameState.COUNTDOWN)
   
   let lastSecond = -1 // 追蹤上一秒的值
   
@@ -890,7 +904,7 @@ function startCountdown(): void {
 
   countdownTimer.start(5, (remaining) => {
     const currentSecond = Math.ceil(remaining)
-    countdown.value = remaining
+    setCountdown(remaining)
     
     // 只在秒數變化時播放音效
     if (currentSecond !== lastSecond && currentSecond > 0) {
@@ -898,7 +912,7 @@ function startCountdown(): void {
       lastSecond = currentSecond
     }
   }, async () => {
-    countdown.value = 0
+    setCountdown(0)
     await launchRocket()
   })
 }
@@ -918,7 +932,7 @@ async function launchRocket(): Promise<void> {
   
   try {
     // 1. 發射準備階段 - 播放 rocket_shake 動畫
-    currentState.value = GameState.LAUNCHING
+    setState(GameState.LAUNCHING)
     
     if (rocketSpine) {
       playSpineAnimation(rocketSpine, 'rocket_shake', false)
@@ -942,7 +956,7 @@ async function launchRocket(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 1500))
     
     // 3. 飛行階段 - 播放 flying_loop 動畫
-    currentState.value = GameState.FLYING
+    setState(GameState.FLYING)
     if (rocketSpine) {
       playSpineAnimation(rocketSpine, 'flying_loop', true)
     }
@@ -958,7 +972,7 @@ async function launchRocket(): Promise<void> {
     }
     
     // 進入下車階段
-    currentState.value = GameState.DISEMBARKING
+    setState(GameState.DISEMBARKING)
     logger.info('✅ 火箭發射完成，進入下車階段')
 
       // 開始火箭漂浮效果（延遲一小段時間確保位置穩定）
@@ -977,6 +991,7 @@ async function playerDisembark(): Promise<void> {
   const character = await createCharacterJump('player', `player-disembark-${Date.now()}`, '玩家下車囉')
   if (!character) return
 
+  removeCharacterFromBoard('player')
   logger.info('🎯 玩家角色創建成功，開始動畫')
   await animateCharacterJump(character)
   playSound('user_jump') // 玩家下車音效
@@ -985,7 +1000,7 @@ async function playerDisembark(): Promise<void> {
 // 主播下車
 async function streamerDisembark(): Promise<void> {
   if (hasPlayedLaunchPlayer.value) {
-    hasPlayedLaunchPlayer.value = false
+    setLaunchPlayerPlayed(false)
     const trackEntry = playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
     if (trackEntry) {
       // 反轉動畫
@@ -1005,6 +1020,7 @@ async function streamerDisembark(): Promise<void> {
   const character = await createCharacterJump('streamer', `streamer-disembark-${Date.now()}`, '主播下車囉')
   if (!character) return
 
+  removeCharacterFromBoard('streamer')
   await animateCharacterJump(character)
   playSound('other_jump') // 其他人下車音效
 }
@@ -1014,6 +1030,7 @@ async function npcDisembark(): Promise<void> {
   const character = await createCharacterJump('npc', `npc-disembark-${Date.now()}`)
   if (!character) return
 
+  removeCharacterFromBoard('npc')
   await animateCharacterJump(character)
   playSound('other_jump') // 其他人下車音效
 }
@@ -1023,8 +1040,8 @@ async function explodeRocket(): Promise<void> {
   if (isAnimating.value) return
   
   logger.info('💥 火箭爆炸')
-  currentState.value = GameState.EXPLODING
-  isAnimating.value = true
+  setState(GameState.EXPLODING)
+  setAnimating(true)
   
   try {    
     // 停止火箭飛行音效、背景滾動和漂浮效果
@@ -1043,13 +1060,13 @@ async function explodeRocket(): Promise<void> {
     // await new Promise(resolve => setTimeout(resolve, 2000))
     
     // 遊戲結束
-    currentState.value = GameState.COMPLETED
-    isAnimating.value = false
+    setState(GameState.COMPLETED)
+    setAnimating(false)
     logger.info('✅ 遊戲流程完成')
     
   } catch (error) {
     logger.error(`❌ 爆炸序列失敗: ${error}`)
-    isAnimating.value = false
+    setAnimating(false)
   }
 }
 
@@ -1066,10 +1083,6 @@ async function resetGame(): Promise<void> {
   }
   stopAllAudio() // 停止所有背景音樂
   stopRocketFloat() // 停止火箭漂浮效果
-  countdown.value = 0
-  isAnimating.value = false
-  hasPlayedLaunchPlayer.value = false // 重置 launch_player 播放狀態
-  
   // 清理所有角色
   for (const character of characters.values()) {
     if (app && app.stage.getChildIndex(character.spine) !== -1) {
@@ -1077,10 +1090,9 @@ async function resetGame(): Promise<void> {
     }
   }
   characters.clear()
-  charactersOnBoard.value = []
   
-  // 重置狀態
-  currentState.value = GameState.IDLE
+  // 重置所有遊戲狀態
+  resetGameState()
   
   // 重置背景系統
   stopBackgroundScroll()
