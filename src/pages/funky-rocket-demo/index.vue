@@ -599,6 +599,83 @@ async function createCharacterJump(type: CharacterType, id: string, followText: 
 
 
 
+// 背景淡入 + 前景浮現動畫
+const animateBackgroundFloatUp = (
+  oldCycleSprites: any[] = [], 
+  oldDefaultBackground: any = null, 
+  oldFrontCloud: any = null
+): void => {
+  if (!defaultBackgroundSprite && !frontCloudSprite) return
+  
+  // 保存原始位置
+  const originalCloudY = frontCloudSprite?.y || 0
+  
+  // 背景淡入設置 - 保持在原位置，但設為透明
+  if (defaultBackgroundSprite) {
+    defaultBackgroundSprite.alpha = 0 // 初始透明
+  }
+  
+  // 前景浮現設置 - 移到螢幕下方
+  if (frontCloudSprite) {
+    frontCloudSprite.y = gameHeight.value + frontCloudSprite.height
+  }
+  
+  const duration = 500 // 0.5秒動畫
+  const startTime = Date.now()
+  
+  const animate = () => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    
+    // 使用 easeOutCubic 緩動函數，讓動畫更自然
+    const easeProgress = 1 - Math.pow(1 - progress, 3)
+    
+    // 背景淡入動畫
+    if (defaultBackgroundSprite) {
+      defaultBackgroundSprite.alpha = easeProgress // 從 0 淡入到 1
+    }
+    
+    // 前景浮現動畫
+    if (frontCloudSprite) {
+      const startY = gameHeight.value + frontCloudSprite.height
+      const endY = originalCloudY
+      frontCloudSprite.y = startY + (endY - startY) * easeProgress
+    }
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    } else {
+      // 動畫完成，清理舊背景
+      if (!app) return
+
+      // 清理舊循環背景
+      oldCycleSprites.forEach(sprite => {
+        if (app && app.stage.getChildIndex(sprite) !== -1) {
+          app.stage.removeChild(sprite)
+        }
+      })
+      
+      // 清理舊默認背景
+      if (oldDefaultBackground && app.stage.getChildIndex(oldDefaultBackground) !== -1) {
+        app.stage.removeChild(oldDefaultBackground)
+      }
+      
+      // 清理舊前景雲朵
+      if (oldFrontCloud && app.stage.getChildIndex(oldFrontCloud) !== -1) {
+        app.stage.removeChild(oldFrontCloud)
+      }
+      
+      // 重新排序子元素
+      app.stage.sortChildren()
+      
+      logger.info('✅ 背景淡入 + 前景浮現動畫完成，舊背景已清理')
+    }
+  }
+  
+  logger.info('🎬 開始背景淡入 + 前景浮現動畫')
+  animate()
+}
+
 // 角色動畫 - 下車（跳躍）- 原地跳躍
 async function animateCharacterJump(character: Character): Promise<void> {
   if (!character.spine || !app) return
@@ -1011,36 +1088,42 @@ async function resetGame(): Promise<void> {
   // 重置滾動速度
   scrollSpeed.value = baseScrollSpeed.value
   
-  // 清理循環背景
-  cycleBackgroundSprites.forEach(sprite => {
-    if (app && app.stage.getChildIndex(sprite) !== -1) {
-      app.stage.removeChild(sprite)
-    }
-  })
+  // 保存舊背景引用，稍後在動畫完成後清理
+  const oldCycleSprites = [...cycleBackgroundSprites]
+  const oldDefaultBackground = defaultBackgroundSprite
+  const oldFrontCloud = frontCloudSprite
+  
+  // 重置引用但不清理實際元素
   cycleBackgroundSprites = []
   
-  // 清理並重新創建默認背景
-  if (defaultBackgroundSprite && app && app.stage.getChildIndex(defaultBackgroundSprite) !== -1) {
-    app.stage.removeChild(defaultBackgroundSprite)
-  }
-  defaultBackgroundSprite = null
-  
-  // 重新創建前景雲朵
-  if (frontCloudSprite && app && app.stage.getChildIndex(frontCloudSprite) !== -1) {
-    app.stage.removeChild(frontCloudSprite)
-  }
-  frontCloudSprite = null
-  
-  // 重新創建默認背景和前景
+  // 創建新的背景和前景
   if (app) {
+    // 先重置引用
+    defaultBackgroundSprite = null
+    frontCloudSprite = null
+    
+    // 創建新背景和前景
     await setDefaultBackground()
     await setFrontCloud()
+    
+    // 確保新背景在所有舊背景上方
+    if (defaultBackgroundSprite) {
+      (defaultBackgroundSprite as any).zIndex = -1 // 比舊背景(-10)和循環背景(-5)都高
+    }
+    if (frontCloudSprite) {
+      (frontCloudSprite as any).zIndex = 20 // 比舊前景(10)高  
+    }
+    
+    // 立即排序以確保顯示順序正確
+    app.stage.sortChildren()
+    
+    // 添加從下往上的浮現動畫，並在完成後清理舊背景
+    animateBackgroundFloatUp(oldCycleSprites, oldDefaultBackground, oldFrontCloud)
   }
   
   // 重置火箭動畫和大小 (考慮縮放因子)
   if (rocketSpine) {
     clearSpineState(rocketSpine)
-    playSpineAnimation(rocketSpine, 'launch', true)
     
     // 恢復火箭到原始大小和位置
     applySpineTransform(rocketSpine, {
@@ -1049,6 +1132,19 @@ async function resetGame(): Promise<void> {
       scaleX: baseScale.value,
       scaleY: baseScale.value
     })
+    
+    // 先播放震動動畫
+    playSpineAnimation(rocketSpine, 'restart', false)
+    logger.info('🚀 火箭開始震動')
+    
+    // 0.6 秒後切換到 launch 動畫
+    setTimeout(() => {
+      if (rocketSpine) {
+        clearSpineState(rocketSpine)
+        playSpineAnimation(rocketSpine, 'launch', true)
+        logger.info('🚀 火箭切換到 launch 動畫')
+      }
+    }, 600)
   }
   
   logger.info('✅ 遊戲重置完成')
