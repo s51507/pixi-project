@@ -514,7 +514,7 @@ async function createFollowText(
     textResult.textObject.x = startX
     textResult.textObject.y = startY
     textResult.textObject.anchor.set(0.5, 0.5)
-    textResult.textObject.zIndex = 15
+    // textResult.textObject.zIndex = 15
     textResult.textObject.visible = false  // 先隱藏
     app.stage.addChild(textResult.textObject)
     app.stage.sortChildren()
@@ -557,7 +557,7 @@ async function createCharacterJump(type: CharacterType, id: string, followText: 
     })
     
     const spine = spineResult.spine
-    spine.zIndex = 2 // 角色在火箭之上
+    // spine.zIndex = 2 // 角色在火箭之上
 
     // 從火箭的實際位置開始 (考慮縮放因子)
     const scale = baseScale.value
