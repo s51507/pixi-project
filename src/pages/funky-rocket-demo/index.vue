@@ -35,6 +35,7 @@
       @npcDisembark="npcDisembark"
       @explodeRocket="explodeRocket"
       @resetGame="resetGame"
+      @changeGameState="changeGameState"
     />
   </div>
 </template>
@@ -235,7 +236,7 @@ const npcBoard = async (): Promise<void> => {
 // 開始倒數計時
 const startCountdown = (): void => {
   const countdownTimer = getCountdownTimer()
-  if (currentState.value === GameState.COUNTDOWN || !countdownTimer) return
+  if (!countdownTimer) return
   
   logger.info('⏰ 開始倒數計時')
   setState(GameState.COUNTDOWN)
@@ -438,6 +439,120 @@ const resetGame = async (): Promise<void> => {
   resetRocket()
   
   logger.info('✅ 遊戲重置完成')
+}
+
+// 快速切換遊戲階段
+const changeGameState = async (newState: string): Promise<void> => {
+  const targetState = newState as GameState
+  logger.info(`🎮 快速切換遊戲階段: ${currentState.value} -> ${targetState}`)
+  
+  // 如果是同樣的狀態，直接返回
+  if (currentState.value === targetState) return
+  
+  try {
+    // 先停止所有正在進行的動畫和音效
+    const countdownTimer = getCountdownTimer()
+    if (countdownTimer) countdownTimer.stop()
+
+    stopBGM()
+    stopAllAudio()
+    setCountdown(0)
+    setAnimating(false)
+    stopRocketFloat()
+
+    // 根據目標狀態設置場景
+    switch (targetState) {
+      case GameState.IDLE:
+        destroyBackground()
+        resetGameState()
+        await resetBackground()
+        await setFrontCloud()
+        playBGM('bgm_open')
+        resetRocket()
+        break
+        
+      case GameState.BOARDING:
+        destroyBackground()
+        setState(GameState.BOARDING)
+        await resetBackground()
+        await setFrontCloud()
+        playBGM('bgm_open')
+        resetRocket()
+        playRocketAnimation('launch', true)
+        break
+        
+      case GameState.COUNTDOWN:
+        destroyBackground()
+        setState(GameState.COUNTDOWN)
+        await resetBackground()
+        await setFrontCloud()
+        playBGM('bgm_open')
+        resetRocket()
+        playRocketAnimation('launch', true)
+        startCountdown()
+        break
+        
+      case GameState.LAUNCHING:
+        destroyBackground()
+        setState(GameState.LAUNCHING)
+        setAnimating(true)
+        await setDefaultBackground()
+        await setFrontCloud()
+        playRocketAnimation('launch', true)
+
+        launchRocket()
+        break
+        
+      case GameState.FLYING:
+        destroyBackground()
+        setState(GameState.FLYING)
+        // 從中間開始滾動，模擬已經飛行了一段時間
+        await initCycleBackground(true)
+        await setFrontCloud()
+        startBackgroundScroll()
+        playBGM('bgm_fly')
+        startRocketFloat()
+        playRocketAnimation('flying_loop', true)
+        break
+        
+      case GameState.DISEMBARKING:
+        destroyBackground()
+        setState(GameState.DISEMBARKING)
+        // 從中間開始滾動，模擬已經飛行了一段時間  
+        await initCycleBackground(true)
+        await setFrontCloud()
+        startBackgroundScroll()
+        playBGM('bgm_fly')
+        startRocketFloat()
+        playRocketAnimation('flying_loop', true)
+        break
+        
+      case GameState.EXPLODING:
+        destroyBackground()
+        setState(GameState.EXPLODING)
+        await initCycleBackground(true)
+        setAnimating(true)
+        playSound('rocket_explode')
+        stopRocketFloat()
+        clearRocketStateWithTrack(1)
+        playRocketAnimation('explosion', false)
+        break
+        
+      case GameState.COMPLETED:
+        destroyBackground()
+        setState(GameState.COMPLETED)
+        await initCycleBackground(true)
+        setAnimating(false)
+        playSound('win')
+        stopRocketFloat()
+        break
+    }
+    
+    logger.info(`✅ 遊戲階段切換完成: ${targetState}`)
+    
+  } catch (error) {
+    logger.error(`❌ 遊戲階段切換失敗: ${error}`)
+  }
 }
 
 // 設置生命週期管理

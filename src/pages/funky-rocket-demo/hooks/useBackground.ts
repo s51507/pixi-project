@@ -118,12 +118,12 @@ export const useBackground = (getApp: () => any) => {
   }
 
   // 初始化循環背景 - 在默認背景上方接續
-  const initCycleBackground = async (): Promise<void> => {
+  const initCycleBackground = async (startFromMiddle: boolean = false): Promise<void> => {
     const app = getApp()
     if (!app) return
     
     try {
-      logger.info(`🔄 初始化循環背景`)
+      logger.info(`🔄 初始化循環背景${startFromMiddle ? '（從中間開始）' : '（從頂部開始）'}`)
       
       const texture = await Assets.load(cycleBackground.value)
       
@@ -134,12 +134,26 @@ export const useBackground = (getApp: () => any) => {
       // 創建足夠的精靈來填滿和覆蓋畫面高度（考慮滾動）
       const spriteCount = Math.ceil(gameHeight.value / scaledHeight) + 2
       
+      // 計算起始偏移量
+      let startOffset = 0
+      if (startFromMiddle) {
+        // 從中間開始：讓一些背景已經滾動過了
+        startOffset = gameHeight.value * 0.5 // 偏移畫面高度的一半
+      }
+      
       for (let i = 0; i < spriteCount; i++) {
         const sprite = new PIXI.Sprite(texture)
         sprite.scale.set(scale)
         sprite.x = 0
-        // 在默認背景上方排列，使用整數座標避免像素縫隙
-        sprite.y = Math.floor(-scaledHeight * (i + 1))
+        
+        if (startFromMiddle) {
+          // 從中間位置開始排列，模擬已經飛行了一段時間
+          sprite.y = Math.floor(-scaledHeight * i + startOffset)
+        } else {
+          // 正常從頂部開始排列
+          sprite.y = Math.floor(-scaledHeight * (i + 1))
+        }
+        
         sprite.zIndex = -5 // 在默認背景之上，但在其他元素之下
         
         cycleBackgroundSprites.push(sprite)
@@ -147,7 +161,7 @@ export const useBackground = (getApp: () => any) => {
       }
       
       app.stage.sortChildren()
-      logger.info(`✅ 創建了 ${spriteCount} 個循環背景精靈`)
+      logger.info(`✅ 創建了 ${spriteCount} 個循環背景精靈，起始偏移: ${startOffset}`)
       
     } catch (error) {
       logger.error(`❌ 循環背景設置失敗: ${error}`)

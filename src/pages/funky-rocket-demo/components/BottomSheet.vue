@@ -110,6 +110,30 @@
           </div>
         </div>
 
+        <!-- 遊戲階段控制 -->
+        <div class="border-t border-gray-700 pt-4">
+          <div class="mb-4">
+            <label for="gameStateSelect" class="block text-sm font-medium text-gray-300 mb-2">
+              🎮 快速切換遊戲階段
+            </label>
+            <select 
+              id="gameStateSelect"
+              :value="currentState"
+              @change="(e) => emit('changeGameState', (e.target as HTMLSelectElement).value)"
+              class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="IDLE">🏠 待機 (IDLE)</option>
+              <option value="BOARDING">🚌 上車階段 (BOARDING)</option>
+              <option value="COUNTDOWN">⏰ 倒數階段 (COUNTDOWN)</option>
+              <option value="LAUNCHING">🚀 發射階段 (LAUNCHING)</option>
+              <option value="FLYING">✈️ 飛行階段 (FLYING)</option>
+              <option value="DISEMBARKING">🪂 下車階段 (DISEMBARKING)</option>
+              <option value="EXPLODING">💥 爆炸階段 (EXPLODING)</option>
+              <option value="COMPLETED">🎉 完成階段 (COMPLETED)</option>
+            </select>
+          </div>
+        </div>
+
         <!-- 底部狀態信息 -->
         <div class="border-t border-gray-700 pt-4">
           <div class="grid grid-cols-2 gap-4 text-xs mb-3">
@@ -199,6 +223,7 @@ const emit = defineEmits<{
   npcDisembark: []
   explodeRocket: []
   resetGame: []
+  changeGameState: [gameState: string]
 }>()
 
 // State
