@@ -20,17 +20,19 @@ export enum CharacterType {
 
 // 音效類型
 export interface AudioAssets {
-  bgm_open: string
-  bgm_fly: string
-  rocket_prelaunch_beginning: string
-  rocket_prelaunch_launching: string
-  countdown: string
-  user_hop_on: string
-  user_hop_off: string
-  others_hop_on: string
-  others_hop_off: string
-  rocket_explode: string
-  click: string
+  into: string // 角色進艙門
+  button_bet: string // 下注按鈕
+  button_normal: string // 其他按鈕
+  bgm_open: string // 起飛前背景音樂
+  bgm_fly: string // 飛行背景音樂
+  countdown_5_sec: string // 倒數5秒
+  countdown_10_sec: string // 倒數10秒
+  rocket_prelaunch: string // 火箭發射
+  user_jump: string // 玩家跳躍
+  other_jump: string // 其他人跳躍
+  win: string // 獲勝
+  rocket_explode: string // 火箭爆炸
+  return: string // 重新開始
 }
 
 // 場景配置

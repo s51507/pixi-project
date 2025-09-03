@@ -61,12 +61,12 @@ import {
   clearSpineStateWithTrack,
 } from '@/utils/pixi'
 import { createLogger } from '@/utils/pixi/logger'
-import { CountdownTimer, AudioManager, type AudioAssets } from '@/utils/pixi/scene'
+import { CountdownTimer } from '@/utils/pixi/scene'
 import { createFloatEffect, type EffectState } from '@/utils/pixi/effects'
 import { createBoneTracker } from '@/utils/pixi/boneTracker'
 import { createPixiText } from '@/utils/pixi/text'
-import { useAudioStore } from '@/stores/audio'
 import { GameState, type CharacterType, type Character, type FollowTextResult } from './types'
+import { useAudio } from './hooks/useAudio'
 
 // 注意：此頁面固定使用 funkyRocket 素材包
 
@@ -80,8 +80,19 @@ const isAnimating = ref(false)
 const hasPlayedLaunchPlayer = ref(false) // 記錄是否已播放過 launch_player
 const charactersOnBoard = ref<CharacterType[]>([])
 
-// 使用音效 store
-const audioStore = useAudioStore()
+// 使用音效 hooks
+const {
+  initializeAudio,
+  updateVolume,
+  toggleBGM,
+  toggleSoundEffect,
+  playBGM,
+  playSound,
+  stopBGM,
+  stopAllAudio,
+  destroyAudio,
+  bgmEnabled
+} = useAudio()
 
 // 遊戲尺寸 - 保持 540:958 比例，高度跟 body 一樣
 const gameWidth = ref(540)
@@ -119,24 +130,7 @@ const baseScrollSpeed = computed(() => 5 * Math.min(scaleFactorX.value, scaleFac
 const speedIncrease = computed(() => 0.02 * Math.min(scaleFactorX.value, scaleFactorY.value)) // 每幀增加的速度，根據縮放調整
 const maxScrollSpeed = computed(() => 20 * Math.min(scaleFactorX.value, scaleFactorY.value)) // 最大滾動速度，根據縮放調整
 
-// 音效管理 - 使用 AudioManager
-let audioManager: AudioManager | null = null
 
-// 響應式音效資源配置 - 固定使用 funkyRocket
-const audioAssets = computed<AudioAssets>(() => ({
-  bgm_open: '/funkyRocket/mp3/assets/bgm_open-DYI02Dgc.mp3',
-  bgm_fly: '/funkyRocket/mp3/assets/bgm_fly-DX4muDxO.mp3',
-  countdown: '/funkyRocket/mp3/assets/countdown-S5DFRcF0.mp3',
-  rocket_prelaunch_beginning: '/funkyRocket/mp3/assets/rocket_prelaunch_beginning-CBWMXJzv.mp3',
-  rocket_prelaunch_launching: '/funkyRocket/mp3/assets/rocket_prelaunch_launching-CbFaD9b4.mp3',
-  rocket_fly: '/funkyRocket/mp3/assets/rocket_fly-B0Tde6-n.mp3',
-  rocket_explode: '/funkyRocket/mp3/assets/rocket_explode-DyCSKWjQ.mp3',
-  user_hop_on: '/funkyRocket/mp3/assets/user_hop_on-D1L_1wBN.mp3',
-  user_hop_off: '/funkyRocket/mp3/assets/user_hop_off-jltqlRTg.mp3',
-  others_hop_on: '/funkyRocket/mp3/assets/others_hop_on-BZB6aVMn.mp3',
-  others_hop_off: '/funkyRocket/mp3/assets/others_hop_off-B0ltzgMH.mp3',
-  click: '/funkyRocket/mp3/assets/click-yOjLuJq2.mp3'
-}))
 
 // 響應式資源路徑 - 固定使用 funkyRocket
 const defaultBackground = computed(() => 
@@ -363,67 +357,7 @@ function stopRocketFloat(): void {
   rocketFloatEffect = null
 }
 
-// 初始化 AudioManager
-function createAudioManager(): AudioManager {
-  const manager = new AudioManager(audioAssets.value, logger.createLogFunction())
-  // 立即應用當前音量設定
-  manager.setVolume(audioStore.normalizedVolume)
-  return manager
-}
 
-// 音量控制
-function updateVolume(): void {
-  if (audioManager) {
-    audioStore.setVolume(audioStore.volume) // 觸發 localStorage 保存
-    audioManager.setVolume(audioStore.normalizedVolume)
-    logger.info(`🔊 音量設置: ${audioStore.volume}%`)
-  }
-}
-
-// BGM 總開關控制
-function toggleBGM(): void {
-  audioStore.toggleBGM()
-  
-  if (!audioManager) return
-  
-  if (audioStore.bgmEnabled) {
-    // 根據當前狀態播放對應的 BGM
-    if (currentState.value === GameState.BOARDING || currentState.value === GameState.COUNTDOWN || currentState.value === GameState.LAUNCHING) {
-      audioManager.playBGM('bgm_open', true)
-      logger.info('🎵 BGM 已開啟 - 開場音樂')
-    } else if (currentState.value === GameState.FLYING) {
-      audioManager.playBGM('bgm_fly', true)
-      audioManager.playBGM('rocket_fly', true)  // 也播放火箭飛行音效
-      logger.info('🎵 BGM 已開啟 - 飛行音樂')
-    } else if (currentState.value === GameState.DISEMBARKING) {
-      audioManager.playBGM('bgm_fly', true)
-      audioManager.playBGM('rocket_fly', true)  // 下車階段繼續播放火箭音效
-      logger.info('🎵 BGM 已開啟 - 火箭音效')
-    }
-  } else {
-    // 停止所有 BGM
-    audioManager.stopBGM()
-    logger.info('🎵 BGM 已關閉')
-  }
-}
-
-// 音效總開關控制
-function toggleSoundEffect(): void {
-  audioStore.toggleSoundEffect()
-  logger.info(`🔊 音效${audioStore.soundEffectEnabled ? '已開啟' : '已關閉'}`)
-}
-
-// 安全播放 BGM（檢查開關狀態）
-function playBGM(key: string, loop: boolean = true): void {
-  if (!audioManager || !audioStore.bgmEnabled) return
-  audioManager.playBGM(key, loop)
-}
-
-// 安全播放音效（檢查開關狀態）
-function playSound(key: string): void {
-  if (!audioManager || !audioStore.soundEffectEnabled) return
-  audioManager.playSound(key)
-}
 
 
 // 創建角色
@@ -751,8 +685,7 @@ async function initScene(): Promise<void> {
     logger.info('=== 開始初始化 Funky Rocket 遊戲場景 ===')
 
     // 1. 初始化音效系統
-    audioManager = createAudioManager()
-    updateVolume() // 設置初始音量
+    initializeAudio()
 
     // 2. 創建 PixiJS 應用
     const pixiResult = await createPixiApp({
@@ -816,7 +749,7 @@ function startGame(): void {
   currentState.value = GameState.BOARDING
 
   // 播放開場BGM（如果開關啟用）
-  if (audioStore.bgmEnabled) playBGM('bgm_open', true)
+  if (bgmEnabled.value) playBGM('bgm_open', true)
 }
 
 // 玩家上車
@@ -824,8 +757,9 @@ async function playerBoard(): Promise<void> {
   const character = await createCharacterWalk('player', `player-${Date.now()}`)
   if (!character) return
 
-  playSound('user_hop_on') // 玩家上車音效
+  playSound('button_bet') // 玩家上車音效(投注)
   await animateCharacterWalk(character, 'left')
+  playSound('into') // 角色進艙門音效
 }
 
 // 主播上車
@@ -835,8 +769,8 @@ async function streamerBoard(): Promise<void> {
   if (!character) return
 
   // 等待主播上車動畫完全完成
-  playSound('others_hop_on') // 其他人上車音效
   await animateCharacterWalk(character, 'left')
+  playSound('into') // 角色進艙門音效
   
   // 等待主播上車動畫完全結束後，才播放 launch_player
   // 主播有上車過就不需要再播放了
@@ -859,10 +793,10 @@ async function streamerBoard(): Promise<void> {
 async function npcBoard(): Promise<void> {
   
   const character = await createCharacterWalk('npc', `npc-${Date.now()}`)
-  if (character) {
-    playSound('others_hop_on') // 其他人上車音效
-    await animateCharacterWalk(character, 'right')
-  }
+  if (!character) return
+
+  await animateCharacterWalk(character, 'right')
+  playSound('into') // 角色進艙門音效
 }
 
 // 開始倒數計時
@@ -874,13 +808,15 @@ function startCountdown(): void {
   
   let lastSecond = -1 // 追蹤上一秒的值
   
+  // 倒數5秒
+  playSound('countdown_5_sec')
+
   countdownTimer.start(5, (remaining) => {
     const currentSecond = Math.ceil(remaining)
     countdown.value = remaining
     
     // 只在秒數變化時播放音效
     if (currentSecond !== lastSecond && currentSecond > 0) {
-      playSound('countdown')
       logger.info(`🔊 倒數: ${currentSecond}`)
       lastSecond = currentSecond
     }
@@ -895,7 +831,7 @@ async function launchRocket(): Promise<void> {
   logger.info('🚀 火箭發射序列開始')
 
   // 先停止開場BGM，但保留其他BGM
-  audioManager?.stopBGM('bgm_open')
+  stopBGM('bgm_open')
   
   // 等待所有上車動畫完成 - 檢查是否還有角色在移動中
   while (characters.size > 0) {
@@ -911,7 +847,7 @@ async function launchRocket(): Promise<void> {
       playSpineAnimation(rocketSpine, 'rocket_shake', false)
     }
     
-    playSound('rocket_prelaunch_beginning')
+    playSound('rocket_prelaunch')
     
     // 等待1秒
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -921,8 +857,6 @@ async function launchRocket(): Promise<void> {
       playSpineAnimation(rocketSpine, 'flying', false)
     }
 
-    playSound('rocket_prelaunch_launching')
-    
     // 初始化循環背景並開始滾動 (flying 動畫開始時才滾動)
     await initCycleBackground()
     startBackgroundScroll()
@@ -937,12 +871,12 @@ async function launchRocket(): Promise<void> {
     }
 
     // 播放飛行BGM（如果開關啟用）
-    if (audioStore.bgmEnabled) {
+    if (bgmEnabled.value) {
       playBGM('bgm_fly', true)
     }
 
     // 播放火箭飛行音效（如果BGM開關啟用）
-    if (audioStore.bgmEnabled) {
+    if (bgmEnabled.value) {
       playBGM('rocket_fly', true)
     }
     
@@ -968,7 +902,7 @@ async function playerDisembark(): Promise<void> {
 
   logger.info('🎯 玩家角色創建成功，開始動畫')
   await animateCharacterJump(character)
-  playSound('user_hop_off') // 玩家下車音效
+  playSound('user_jump') // 玩家下車音效
 }
 
 // 主播下車
@@ -995,7 +929,7 @@ async function streamerDisembark(): Promise<void> {
   if (!character) return
 
   await animateCharacterJump(character)
-  playSound('others_hop_off') // 其他人下車音效
+  playSound('other_jump') // 其他人下車音效
 }
 
 // NPC下車
@@ -1004,7 +938,7 @@ async function npcDisembark(): Promise<void> {
   if (!character) return
 
   await animateCharacterJump(character)
-  playSound('others_hop_off') // 其他人下車音效
+  playSound('other_jump') // 其他人下車音效
 }
 
 // 火箭爆炸
@@ -1017,7 +951,7 @@ async function explodeRocket(): Promise<void> {
   
   try {    
     // 停止火箭飛行音效、背景滾動和漂浮效果
-    audioManager?.stopBGM()
+    stopAllAudio()
     stopBackgroundScroll()
     stopRocketFloat()
     
@@ -1045,12 +979,15 @@ async function explodeRocket(): Promise<void> {
 // 重置遊戲
 async function resetGame(): Promise<void> {
   logger.info('🔄 重置 Funky Rocket 遊戲')
+
+  // 重新開始音效
+  playSound('return')
   
   // 停止所有動畫、計時器和音效
   if (countdownTimer) {
     countdownTimer.stop()
   }
-  audioManager?.stopBGM() // 停止所有背景音樂
+  stopAllAudio() // 停止所有背景音樂
   stopRocketFloat() // 停止火箭漂浮效果
   countdown.value = 0
   isAnimating.value = false
@@ -1168,10 +1105,7 @@ function cleanup(): void {
   cycleBackgroundSprites = []
   
   // 清理音效
-  if (audioManager) {
-    audioManager.dispose()
-    audioManager = null
-  }
+  destroyAudio()
   
   if (app) {
     destroyPixiApp(app)
