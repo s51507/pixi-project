@@ -51,22 +51,16 @@ import type { Application } from 'pixi.js'
 import { 
   createPixiApp, 
   destroyPixiApp,
-  createSpineAnimation,
-  playSpineAnimation,
-  playSpineAnimationWithTrack,
-  applySpineTransform,
-  clearSpineState,
-  clearSpineStateWithTrack,
 } from '@/utils/pixi'
 import { createLogger } from '@/utils/pixi/logger'
 import { CountdownTimer } from '@/utils/pixi/scene'
-import { createFloatEffect, type EffectState } from '@/utils/pixi/effects'
 
 import { GameState } from './types'
 import { useAudio } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
 import { useBaseConfig } from './hooks/useBaseConfig'
 import { useBackground } from './hooks/useBackground'
+import { useRocket } from './hooks/useRocket'
 import { useCharacters } from './hooks/useCharacters'
 
 // 注意：此頁面固定使用 funkyRocket 素材包
@@ -109,21 +103,30 @@ const {
   gameWidth,
   gameHeight,
   scaleFactorX,
-  scaleFactorY,
-  baseOffsetY,
-  baseScale
+  scaleFactorY
 } = useBaseConfig()
 
 // PixiJS 相關實例
 let app: Application | null = null
 let countdownTimer: CountdownTimer | null = null
-let rocketSpine: any = null
-
-let rocketFloatEffect: EffectState | null = null // 火箭漂浮效果
 const logger = createLogger()
 
 // 獲取 PixiJS app 實例的函數
 const getApp = () => app
+
+// 火箭管理
+const {
+  initializeRocket,
+  startRocketFloat,
+  stopRocketFloat,
+  playRocketAnimation,
+  playRocketAnimationWithTrack,
+  clearRocketStateWithTrack,
+  resetRocket,
+  updateRocketScale,
+  destroyRocket,
+  getRocketSpine
+} = useRocket(getApp)
 
 // 角色管理
 const {
@@ -134,7 +137,7 @@ const {
   updateCharactersScale,
   destroyAllCharacters,
   waitForAllCharactersComplete
-} = useCharacters(getApp, rocketSpine)
+} = useCharacters(getApp, getRocketSpine)
 
 // 背景管理
 const {
@@ -154,44 +157,8 @@ const {
   destroyBackground
 } = useBackground(getApp)
 
-// 角色相關函數已移至 useCharacters hook
-
-
-// 開始火箭漂浮效果
-function startRocketFloat(): void {
-  if (!rocketSpine || rocketFloatEffect?.isActive) return
-  
-  logger.info('🌊 開始火箭漂浮效果')
-
-  rocketFloatEffect = createFloatEffect(
-    rocketSpine,
-    {
-      range: 15 * Math.min(scaleFactorX.value, scaleFactorY.value),    // 漂浮範圍根據縮放因子調整
-      speed: 1.2,   // 漂浮速度
-      baseX: rocketSpine.x,
-      baseY: rocketSpine.y
-    }
-    // 移除回調函數，讓 createFloatEffect 內部直接處理位置更新
-  )
-}
-
-// 停止火箭漂浮效果
-function stopRocketFloat(): void {
-  if (!rocketFloatEffect) return
-  
-  logger.info('⏹️ 停止火箭漂浮效果')
-  rocketFloatEffect.isActive = false
-  
-  if (rocketFloatEffect.animationId) {
-    cancelAnimationFrame(rocketFloatEffect.animationId)
-    rocketFloatEffect.animationId = null
-  }
-  
-  rocketFloatEffect = null
-}
-
 // 場景初始化
-async function initScene(): Promise<void> {
+const initScene = async (): Promise<void> => {
   if (!canvasRef.value) {
     logger.error('Canvas 元素未找到')
     return
@@ -221,27 +188,7 @@ async function initScene(): Promise<void> {
     await setFrontCloud()
 
     // 5. 創建火箭 Spine 動畫
-    logger.info('開始創建火箭 Spine 動畫...')
-    const spineResult = await createSpineAnimation({
-      skelPath: '/funkyRocket/spine/rocket/rocket.skel',
-      atlasPath: '/funkyRocket/spine/rocket/rocket.atlas',
-      imagePath: '/funkyRocket/spine/rocket/rocket.png'
-    })
-    
-    rocketSpine = spineResult.spine
-    rocketSpine.zIndex = 1
-    app.stage.addChild(rocketSpine)
-    
-    // 設置火箭位置（居中，考慮縮放因子）
-    applySpineTransform(rocketSpine, {
-      x: gameWidth.value / 2,
-      y: gameHeight.value / 2 + baseOffsetY.value,
-      scaleX: baseScale.value,
-      scaleY: baseScale.value
-    })
-    
-    // 播放火箭初始動畫（launch）
-    if (spineResult.animations.includes('launch')) playSpineAnimation(rocketSpine, 'launch', true)
+    await initializeRocket()
 
     // 5. 初始化倒數計時器
     countdownTimer = new CountdownTimer()
@@ -257,7 +204,7 @@ async function initScene(): Promise<void> {
 // ===== 遊戲流程控制函數 =====
 
 // 開始遊戲
-function startGame(): void {
+const startGame = (): void => {
   if (currentState.value !== GameState.IDLE) return
   
   logger.info('🎮 開始 Funky Rocket 遊戲')
@@ -268,7 +215,7 @@ function startGame(): void {
 }
 
 // 玩家上車
-async function playerBoard(): Promise<void> {
+const playerBoard = async (): Promise<void> => {
   const character = await createCharacterWalk('player', `player-${Date.now()}`)
   if (!character) return
 
@@ -279,7 +226,7 @@ async function playerBoard(): Promise<void> {
 }
 
 // 主播上車
-async function streamerBoard(): Promise<void> {
+const streamerBoard = async (): Promise<void> => {
   
   const character = await createCharacterWalk('streamer', `streamer-${Date.now()}`)
   if (!character) return
@@ -294,7 +241,7 @@ async function streamerBoard(): Promise<void> {
   // 主播有上車過就不需要再播放了
   if (hasPlayedLaunchPlayer.value) return
 
-  const trackEntry = playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
+  const trackEntry = playRocketAnimationWithTrack('launch_player', false, 1)
   if (trackEntry) {
     // 嘗試設定 mixBlend 為 normal，保持原始效果
     if ((trackEntry as any).mixBlend !== undefined) {
@@ -308,7 +255,7 @@ async function streamerBoard(): Promise<void> {
 }
 
 // NPC上車
-async function npcBoard(): Promise<void> {
+const npcBoard = async (): Promise<void> => {
   
   const character = await createCharacterWalk('npc', `npc-${Date.now()}`)
   if (!character) return
@@ -319,7 +266,7 @@ async function npcBoard(): Promise<void> {
 }
 
 // 開始倒數計時
-function startCountdown(): void {
+const startCountdown = (): void => {
   if (currentState.value === GameState.COUNTDOWN || !countdownTimer) return
   
   logger.info('⏰ 開始倒數計時')
@@ -346,7 +293,7 @@ function startCountdown(): void {
 }
 
 // 火箭發射序列
-async function launchRocket(): Promise<void> {
+const launchRocket = async (): Promise<void> => {
   logger.info('🚀 火箭發射序列開始')
 
   // 先停止開場BGM，但保留其他BGM
@@ -359,9 +306,7 @@ async function launchRocket(): Promise<void> {
     // 1. 發射準備階段 - 播放 rocket_shake 動畫
     setState(GameState.LAUNCHING)
     
-    if (rocketSpine) {
-      playSpineAnimation(rocketSpine, 'rocket_shake', false)
-    }
+    playRocketAnimation('rocket_shake', false)
     
     playSound('rocket_prelaunch')
     
@@ -369,9 +314,7 @@ async function launchRocket(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     // 2. 發射啟動階段 - 播放 flying 動畫並開始背景滾動
-    if (rocketSpine) {
-      playSpineAnimation(rocketSpine, 'flying', false)
-    }
+    playRocketAnimation('flying', false)
 
     // 初始化循環背景並開始滾動 (flying 動畫開始時才滾動)
     await initCycleBackground()
@@ -382,9 +325,7 @@ async function launchRocket(): Promise<void> {
     
     // 3. 飛行階段 - 播放 flying_loop 動畫
     setState(GameState.FLYING)
-    if (rocketSpine) {
-      playSpineAnimation(rocketSpine, 'flying_loop', true)
-    }
+    playRocketAnimation('flying_loop', true)
 
     // 播放飛行BGM（如果開關啟用）
     if (bgmEnabled.value) {
@@ -411,7 +352,7 @@ async function launchRocket(): Promise<void> {
 }
 
 // 玩家下車
-async function playerDisembark(): Promise<void> {
+const playerDisembark = async (): Promise<void> => {
   logger.info('🎯 玩家下車按鈕被點擊')
   const character = await createCharacterJump('player', `player-disembark-${Date.now()}`, '玩家下車囉')
   if (!character) return
@@ -423,10 +364,10 @@ async function playerDisembark(): Promise<void> {
 }
 
 // 主播下車
-async function streamerDisembark(): Promise<void> {
+const streamerDisembark = async (): Promise<void> => {
   if (hasPlayedLaunchPlayer.value) {
     setLaunchPlayerPlayed(false)
-    const trackEntry = playSpineAnimationWithTrack(rocketSpine, 'launch_player', false, 1)
+    const trackEntry = playRocketAnimationWithTrack('launch_player', false, 1)
     if (trackEntry) {
       // 反轉動畫
       trackEntry.reverse = true
@@ -451,7 +392,7 @@ async function streamerDisembark(): Promise<void> {
 }
 
 // NPC下車
-async function npcDisembark(): Promise<void> {
+const npcDisembark = async (): Promise<void> => {
   const character = await createCharacterJump('npc', `npc-disembark-${Date.now()}`)
   if (!character) return
 
@@ -461,7 +402,7 @@ async function npcDisembark(): Promise<void> {
 }
 
 // 火箭爆炸
-async function explodeRocket(): Promise<void> {
+const explodeRocket = async (): Promise<void> => {
   if (isAnimating.value) return
   
   logger.info('💥 火箭爆炸')
@@ -474,12 +415,13 @@ async function explodeRocket(): Promise<void> {
     stopBackgroundScroll()
     stopRocketFloat()
     
+    // 清理火箭軌道狀態
+    clearRocketStateWithTrack(1)
+    
     // 播放爆炸動畫和音效
-    if (rocketSpine) {
-      clearSpineStateWithTrack(rocketSpine, 1)
-      playSpineAnimation(rocketSpine, 'explosion', false)
-    }
+    playRocketAnimation('explosion', false)
     playSound('rocket_explode')
+    logger.info('💥 火箭爆炸')
     
     // 等待爆炸動畫完成（假設3秒）
     // await new Promise(resolve => setTimeout(resolve, 2000))
@@ -496,7 +438,7 @@ async function explodeRocket(): Promise<void> {
 }
 
 // 重置遊戲
-async function resetGame(): Promise<void> {
+const resetGame = async (): Promise<void> => {
   logger.info('🔄 重置 Funky Rocket 遊戲')
 
   // 重新開始音效
@@ -524,36 +466,13 @@ async function resetGame(): Promise<void> {
   animateBackgroundFloatUp(oldCycleSprites, oldDefaultBackground, oldFrontCloud)
   
   // 重置火箭動畫和大小 (考慮縮放因子)
-  if (rocketSpine) {
-    clearSpineState(rocketSpine)
-    
-    // 恢復火箭到原始大小和位置
-    applySpineTransform(rocketSpine, {
-      x: gameWidth.value / 2,
-      y: gameHeight.value / 2 + baseOffsetY.value,
-      scaleX: baseScale.value,
-      scaleY: baseScale.value
-    })
-    
-    // 先播放震動動畫
-    playSpineAnimation(rocketSpine, 'restart', false)
-    logger.info('🚀 火箭開始震動')
-    
-    // 0.6 秒後切換到 launch 動畫
-    setTimeout(() => {
-      if (rocketSpine) {
-        clearSpineState(rocketSpine)
-        playSpineAnimation(rocketSpine, 'launch', true)
-        logger.info('🚀 火箭切換到 launch 動畫')
-      }
-    }, 600)
-  }
+  resetRocket()
   
   logger.info('✅ 遊戲重置完成')
 }
 
 // 清理函數
-function cleanup(): void {
+const cleanup = (): void => {
   logger.info('🧹 清理 Funky Rocket 遊戲場景')
   
   if (countdownTimer) {
@@ -566,7 +485,7 @@ function cleanup(): void {
   
   // 清理背景和特效
   destroyBackground()
-  stopRocketFloat()
+  destroyRocket()
   
   // 清理音效
   destroyAudio()
@@ -574,12 +493,11 @@ function cleanup(): void {
   if (app) {
     destroyPixiApp(app)
     app = null
-    rocketSpine = null
   }
 }
 
 // 響應式更新遊戲尺寸 - 保持 540:958 比例，確保完全顯示在螢幕內
-function updateGameSize(): void {
+const updateGameSize = (): void => {
   const aspectRatio = 540 / 958 // 原始比例
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
@@ -611,18 +529,11 @@ function updateGameSize(): void {
 }
 
 // 更新遊戲內容縮放 - 重新計算所有元素的位置和大小
-function updateGameContentScale(): void {
+const updateGameContentScale = (): void => {
   logger.info(`🔄 更新遊戲內容縮放，縮放因子: ${scaleFactorX.value.toFixed(2)}x${scaleFactorY.value.toFixed(2)}`)
   
   // 1. 更新火箭位置和大小
-  if (rocketSpine) {
-    applySpineTransform(rocketSpine, {
-      x: gameWidth.value / 2,
-      y: gameHeight.value / 2 + baseOffsetY.value,
-      scaleX: baseScale.value,
-      scaleY: baseScale.value
-    })
-  }
+  updateRocketScale()
   
   // 2. 更新背景
   updateBackgroundScale()
@@ -639,19 +550,9 @@ function updateGameContentScale(): void {
   }
   
   // 6. 更新火箭漂浮效果
-  if (rocketFloatEffect?.isActive) {
-    stopRocketFloat()
-    startRocketFloat()
-  }
+  stopRocketFloat()
+  startRocketFloat()
 }
-
-// 背景縮放更新函數已移至 useBackground hook
-
-// 角色縮放更新函數已移至 useCharacters hook
-
-
-
-// 注意：此頁面固定使用 funkyRocket 素材包，不需要監聽素材包變化
 
 // 生命週期
 onMounted(async () => {

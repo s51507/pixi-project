@@ -12,7 +12,7 @@ import { useBaseConfig } from './useBaseConfig'
 
 const logger = createLogger()
 
-export const useCharacters = (getApp: () => any, rocketSpine: any) => {
+export const useCharacters = (getApp: () => any, getRocketSpine: () => any) => {
   // 基礎配置
   const {
     gameWidth,
@@ -162,6 +162,7 @@ export const useCharacters = (getApp: () => any, rocketSpine: any) => {
   // 創建下車角色（使用 jump 動畫）
   const createCharacterJump = async (type: CharacterType, id: string, followText: string = ''): Promise<Character | null> => {
     const app = getApp()
+    const rocketSpine = getRocketSpine()
     if (!app) return null
     
     try {
