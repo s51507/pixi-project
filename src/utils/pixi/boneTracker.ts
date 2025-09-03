@@ -443,23 +443,3 @@ export class BoneTracker {
 export function createBoneTracker(options: BoneTrackingOptions): BoneTracker {
   return new BoneTracker(options)
 }
-
-/**
- * 快速檢查骨骼位置的工具函數
- */
-export function quickCheckBonePositions(spine: any): BoneInfo[] {
-  if (!spine?.skeleton?.bones) {
-    console.error('❌ Spine 或骨骼不存在')
-    return []
-  }
-
-  const bones = spine.skeleton.bones
-  return bones.map((bone: any, index: number) => ({
-    name: bone.data?.name || `bone-${index}`,
-    index,
-    x: bone.x || 0,
-    y: bone.y || 0,
-    worldX: bone.worldX || 0,
-    worldY: bone.worldY || 0
-  }))
-}

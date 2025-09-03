@@ -29,7 +29,6 @@ export * from './boneTracker'
 
 // 場景管理相關
 export * from './scene'
-export * from './background'
 
 // 重新導出常用類型
 export type { 
@@ -64,11 +63,6 @@ export type {
   TextTransform, 
   CreateTextResult 
 } from './text'
-
-export type { 
-  TextFollowerConfig, 
-  TextFollowerResult 
-} from './textFollower'
 
 export type { 
   BoneInfo, 
