@@ -298,7 +298,7 @@ export const useCharacters = (getApp: () => any, getRocketSpine: () => any) => {
         applySpineTransform(character.spine, {
           x: character.spine.x, // 保持當前位置
           y: character.spine.y, // 保持當前位置
-          scaleX: isNpc ? -baseScale.value : (character.type === 'player' || character.type === 'streamer') ? -baseScale.value : baseScale.value,
+          scaleX: isNpc ? -baseScale.value : baseScale.value,
           scaleY: baseScale.value
         })
       }

@@ -448,11 +448,15 @@ setupLifecycle({
     updateBackgroundScale,
     updateFrontCloudScale,
     updateCharactersScale,
-    stopRocketFloat,
-    startRocketFloat,
     resetScrollSpeed: () => {
       if (isScrolling.value) {
         scrollSpeed.value = baseScrollSpeed.value
+      }
+    },
+    resetRocketFloat: () => {
+      if (isScrolling.value) {
+        stopRocketFloat()
+        startRocketFloat()
       }
     }
   },

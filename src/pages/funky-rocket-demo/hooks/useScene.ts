@@ -60,22 +60,29 @@ export const useScene = () => {
   }
 
   // 響應式更新遊戲尺寸 - 保持 540:958 比例，確保完全顯示在螢幕內
-  const updateGameSize = (): void => {
+  const updateGameSize = (updateFunctions?: {
+    updateRocketScale?: () => void,
+    updateBackgroundScale?: () => void,
+    updateFrontCloudScale?: () => void,
+    updateCharactersScale?: () => void,
+    resetScrollSpeed?: () => void
+    resetRocketFloat?: () => void,
+  }): void => {
     const aspectRatio = 540 / 958 // 原始比例
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
     
     // 計算按高度和寬度縮放的尺寸
-    const heightBasedWidth = viewportHeight * aspectRatio
-    const widthBasedHeight = viewportWidth / aspectRatio
+    const heightBasedWidth = Math.round(viewportHeight * aspectRatio)
+    const widthBasedHeight = Math.round(viewportWidth / aspectRatio)
     
-    // 使用較小的尺寸來確保完全顯示在螢幕內
+    // 選擇能完全顯示在螢幕內的尺寸
     if (heightBasedWidth <= viewportWidth) {
-      // 按高度縮放
-      gameWidth.value = heightBasedWidth
+      // 以高度為準
       gameHeight.value = viewportHeight
+      gameWidth.value = heightBasedWidth
     } else {
-      // 按寬度縮放
+      // 以寬度為準
       gameWidth.value = viewportWidth
       gameHeight.value = widthBasedHeight
     }
@@ -88,7 +95,7 @@ export const useScene = () => {
     logger.info(`🖼️ 遊戲尺寸已更新: ${gameWidth.value}x${gameHeight.value} (視窗: ${viewportWidth}x${viewportHeight})`)
     
     // 重新繪製遊戲內容以適應新的縮放因子
-    updateGameContentScale()
+    updateGameContentScale(updateFunctions)
   }
 
   // 更新遊戲內容縮放 - 重新計算所有元素的位置和大小
@@ -97,9 +104,8 @@ export const useScene = () => {
     updateBackgroundScale?: () => void,
     updateFrontCloudScale?: () => void,
     updateCharactersScale?: () => void,
-    stopRocketFloat?: () => void,
-    startRocketFloat?: () => void,
     resetScrollSpeed?: () => void
+    resetRocketFloat?: () => void,
   }): void => {
     logger.info(`🔄 更新遊戲內容縮放，縮放因子: ${scaleFactorX.value.toFixed(2)}x${scaleFactorY.value.toFixed(2)}`)
     
@@ -120,8 +126,7 @@ export const useScene = () => {
       updateFunctions.resetScrollSpeed?.()
       
       // 6. 更新火箭漂浮效果
-      updateFunctions.stopRocketFloat?.()
-      updateFunctions.startRocketFloat?.()
+      updateFunctions.resetRocketFloat?.()
     }
   }
 
@@ -165,9 +170,8 @@ export const useScene = () => {
       updateBackgroundScale?: () => void,
       updateFrontCloudScale?: () => void,
       updateCharactersScale?: () => void,
-      stopRocketFloat?: () => void,
-      startRocketFloat?: () => void,
-      resetScrollSpeed?: () => void
+      resetScrollSpeed?: () => void,
+      resetRocketFloat?: () => void,
     },
     cleanupFunctions?: {
       destroyAllCharacters?: () => void,
@@ -178,20 +182,17 @@ export const useScene = () => {
   }): void => {
     onMounted(async () => {
       logger.info('🎸 Funky Rocket 遊戲頁面已掛載')
-      updateGameSize()
+      updateGameSize(initFunctions?.updateFunctions)
       await createPixiApplication()
       await initFunctions?.initScene?.()
       
-      // 設置 updateGameContentScale 的更新函數
-      const updateWithFunctions = () => {
-        updateGameContentScale(initFunctions?.updateFunctions)
-      }
-      window.addEventListener('resize', updateWithFunctions)
+      // 設置 resize 事件監聽器
+      window.addEventListener('resize', () => updateGameSize(initFunctions?.updateFunctions))
     })
 
     onUnmounted(() => {
       logger.info('🎸 Funky Rocket 遊戲頁面即將卸載')
-      window.removeEventListener('resize', updateGameSize)
+      window.removeEventListener('resize', () => updateGameSize(initFunctions?.updateFunctions))
       cleanup(initFunctions?.cleanupFunctions)
     })
   }
