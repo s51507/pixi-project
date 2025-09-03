@@ -40,21 +40,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+
+import { createLogger } from '@/utils/pixi/logger'
+
 import HamburgerMenu from './components/HamburgerMenu.vue'
 import BottomSheet from './components/BottomSheet.vue'
-// 注意：此頁面固定使用 funkyRocket 素材包，不需要 useAssetPackStore
-
-// 引入場景管理相關工具
-import type { Application } from 'pixi.js'
-
-import { 
-  createPixiApp, 
-  destroyPixiApp,
-} from '@/utils/pixi'
-import { createLogger } from '@/utils/pixi/logger'
-import { CountdownTimer } from '@/utils/pixi/scene'
-
 import { GameState } from './types'
 import { useAudio } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
@@ -62,11 +52,7 @@ import { useBaseConfig } from './hooks/useBaseConfig'
 import { useBackground } from './hooks/useBackground'
 import { useRocket } from './hooks/useRocket'
 import { useCharacters } from './hooks/useCharacters'
-
-// 注意：此頁面固定使用 funkyRocket 素材包
-
-// Canvas 引用
-const canvasRef = ref<HTMLCanvasElement>()
+import { useScene } from './hooks/useScene'
 
 // 遊戲狀態管理
 const {
@@ -101,18 +87,18 @@ const {
 // 基礎配置管理
 const {
   gameWidth,
-  gameHeight,
-  scaleFactorX,
-  scaleFactorY
+  gameHeight
 } = useBaseConfig()
 
-// PixiJS 相關實例
-let app: Application | null = null
-let countdownTimer: CountdownTimer | null = null
-const logger = createLogger()
+// 場景管理
+const {
+  canvasRef,
+  getApp,
+  getCountdownTimer,
+  setupLifecycle
+} = useScene()
 
-// 獲取 PixiJS app 實例的函數
-const getApp = () => app
+const logger = createLogger()
 
 // 火箭管理
 const {
@@ -159,39 +145,20 @@ const {
 
 // 場景初始化
 const initScene = async (): Promise<void> => {
-  if (!canvasRef.value) {
-    logger.error('Canvas 元素未找到')
-    return
-  }
-
   try {
     logger.info('=== 開始初始化 Funky Rocket 遊戲場景 ===')
 
     // 1. 初始化音效系統
     initializeAudio()
 
-    // 2. 創建 PixiJS 應用
-    const pixiResult = await createPixiApp({
-      canvas: canvasRef.value,
-      width: gameWidth.value,
-      height: gameHeight.value,
-      backgroundColor: 0x000000
-    })
-    
-    app = pixiResult.app
-    app.stage.sortableChildren = true
-
-    // 3. 設置初始背景
+    // 2. 設置初始背景
     await setDefaultBackground()
     
-    // 4. 設置前景雲朵（高度限制在螢幕一半）
+    // 3. 設置前景雲朵（高度限制在螢幕一半）
     await setFrontCloud()
 
-    // 5. 創建火箭 Spine 動畫
+    // 4. 創建火箭 Spine 動畫
     await initializeRocket()
-
-    // 5. 初始化倒數計時器
-    countdownTimer = new CountdownTimer()
     
     setState(GameState.IDLE)
     logger.info('✅ Funky Rocket 遊戲場景初始化完成')
@@ -267,6 +234,7 @@ const npcBoard = async (): Promise<void> => {
 
 // 開始倒數計時
 const startCountdown = (): void => {
+  const countdownTimer = getCountdownTimer()
   if (currentState.value === GameState.COUNTDOWN || !countdownTimer) return
   
   logger.info('⏰ 開始倒數計時')
@@ -445,6 +413,7 @@ const resetGame = async (): Promise<void> => {
   playSound('return')
   
   // 停止所有動畫、計時器和音效
+  const countdownTimer = getCountdownTimer()
   if (countdownTimer) {
     countdownTimer.stop()
   }
@@ -471,101 +440,27 @@ const resetGame = async (): Promise<void> => {
   logger.info('✅ 遊戲重置完成')
 }
 
-// 清理函數
-const cleanup = (): void => {
-  logger.info('🧹 清理 Funky Rocket 遊戲場景')
-  
-  if (countdownTimer) {
-    countdownTimer.stop()
-    countdownTimer = null
+// 設置生命週期管理
+setupLifecycle({
+  initScene,
+  updateFunctions: {
+    updateRocketScale,
+    updateBackgroundScale,
+    updateFrontCloudScale,
+    updateCharactersScale,
+    stopRocketFloat,
+    startRocketFloat,
+    resetScrollSpeed: () => {
+      if (isScrolling.value) {
+        scrollSpeed.value = baseScrollSpeed.value
+      }
+    }
+  },
+  cleanupFunctions: {
+    destroyAllCharacters,
+    destroyBackground,
+    destroyRocket,
+    destroyAudio
   }
-  
-  // 清理所有角色
-  destroyAllCharacters()
-  
-  // 清理背景和特效
-  destroyBackground()
-  destroyRocket()
-  
-  // 清理音效
-  destroyAudio()
-  
-  if (app) {
-    destroyPixiApp(app)
-    app = null
-  }
-}
-
-// 響應式更新遊戲尺寸 - 保持 540:958 比例，確保完全顯示在螢幕內
-const updateGameSize = (): void => {
-  const aspectRatio = 540 / 958 // 原始比例
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  
-  // 計算按高度和寬度縮放的尺寸
-  const heightBasedWidth = Math.round(viewportHeight * aspectRatio)
-  const widthBasedHeight = Math.round(viewportWidth / aspectRatio)
-  
-  // 選擇能完全顯示在螢幕內的尺寸
-  if (heightBasedWidth <= viewportWidth) {
-    // 以高度為準
-    gameHeight.value = viewportHeight
-    gameWidth.value = heightBasedWidth
-  } else {
-    // 以寬度為準
-    gameWidth.value = viewportWidth
-    gameHeight.value = widthBasedHeight
-  }
-  
-  // 更新 PixiJS 應用尺寸
-  if (app) {
-    app.renderer.resize(gameWidth.value, gameHeight.value)
-  }
-  
-  logger.info(`🖼️ 遊戲尺寸已更新: ${gameWidth.value}x${gameHeight.value} (視窗: ${viewportWidth}x${viewportHeight})`)
-  
-  // 重新繪製遊戲內容以適應新的縮放因子
-  updateGameContentScale()
-}
-
-// 更新遊戲內容縮放 - 重新計算所有元素的位置和大小
-const updateGameContentScale = (): void => {
-  logger.info(`🔄 更新遊戲內容縮放，縮放因子: ${scaleFactorX.value.toFixed(2)}x${scaleFactorY.value.toFixed(2)}`)
-  
-  // 1. 更新火箭位置和大小
-  updateRocketScale()
-  
-  // 2. 更新背景
-  updateBackgroundScale()
-  
-  // 3. 更新前景雲朵
-  updateFrontCloudScale()
-  
-  // 4. 更新現有角色
-  updateCharactersScale()
-  
-  // 5. 重置滾動速度
-  if (isScrolling.value) {
-    scrollSpeed.value = baseScrollSpeed.value
-  }
-  
-  // 6. 更新火箭漂浮效果
-  stopRocketFloat()
-  startRocketFloat()
-}
-
-// 生命週期
-onMounted(async () => {
-  logger.info('🎸 Funky Rocket 遊戲頁面已掛載')
-  updateGameSize()
-  await initScene()
-  
-  window.addEventListener('resize', updateGameSize)
-})
-
-onUnmounted(() => {
-  logger.info('🎸 Funky Rocket 遊戲頁面即將卸載')
-  window.removeEventListener('resize', updateGameSize)
-  cleanup()
 })
 </script>
