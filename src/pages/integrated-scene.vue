@@ -319,7 +319,7 @@ const countdownTimer = new CountdownTimer(logger.createLogFunction())
 const characterManager = new CharacterAnimationManager(logger.createLogFunction())
 
 // 響應式音頻資源配置
-const audioAssets = computed<AudioAssets>(() => ({
+const audioAssets = computed<AudioAssets | any>(() => ({
   bgm_open: assetPackStore.getAudioPath('bgm_open-DYI02Dgc.mp3'),
   bgm_fly: assetPackStore.getAudioPath('bgm_fly-DX4muDxO.mp3'),
   rocket_prelaunch_beginning: assetPackStore.getAudioPath('rocket_prelaunch_beginning-CBWMXJzv.mp3'),

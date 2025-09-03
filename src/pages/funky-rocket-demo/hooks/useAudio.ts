@@ -30,7 +30,7 @@ export const useAudio = () => {
   }))
 
   // 初始化 AudioManager
-  function createAudioManager(): AudioManager {
+  const createAudioManager = (): AudioManager => {
     const manager = new AudioManager(audioAssets.value, logger.createLogFunction())
     // 立即應用當前音量設定
     manager.setVolume(audioStore.normalizedVolume)

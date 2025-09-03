@@ -1,5 +1,6 @@
 import type { CreateTextResult } from '@/utils/pixi/text'
 import type { BoneTracker } from '@/utils/pixi/boneTracker'
+import type { FollowTextResult as TextFollowerResult } from '@/utils/pixi/textFollower'
 
 // 遊戲狀態枚舉
 export enum GameState {
@@ -28,7 +29,4 @@ export interface Character {
 }
 
 // 文字跟隨功能結果
-export interface FollowTextResult {
-  textResult?: CreateTextResult
-  boneTracker?: BoneTracker
-}
+export type FollowTextResult = TextFollowerResult

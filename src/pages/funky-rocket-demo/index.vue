@@ -40,14 +40,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import HamburgerMenu from './components/HamburgerMenu.vue'
 import BottomSheet from './components/BottomSheet.vue'
 // 注意：此頁面固定使用 funkyRocket 素材包，不需要 useAssetPackStore
 
 // 引入場景管理相關工具
 import type { Application } from 'pixi.js'
-import { getRandomNum } from '@/utils'
+
 import { 
   createPixiApp, 
   destroyPixiApp,
@@ -61,12 +61,13 @@ import {
 import { createLogger } from '@/utils/pixi/logger'
 import { CountdownTimer } from '@/utils/pixi/scene'
 import { createFloatEffect, type EffectState } from '@/utils/pixi/effects'
-import { createBoneTracker } from '@/utils/pixi/boneTracker'
-import { createPixiText } from '@/utils/pixi/text'
-import { GameState, type CharacterType, type Character, type FollowTextResult } from './types'
+
+import { GameState } from './types'
 import { useAudio } from './hooks/useAudio'
 import { useGameState } from './hooks/useGameState'
+import { useBaseConfig } from './hooks/useBaseConfig'
 import { useBackground } from './hooks/useBackground'
+import { useCharacters } from './hooks/useCharacters'
 
 // 注意：此頁面固定使用 funkyRocket 素材包
 
@@ -103,22 +104,15 @@ const {
   bgmEnabled
 } = useAudio()
 
-// 遊戲尺寸 - 保持 540:958 比例，高度跟 body 一樣
-const gameWidth = ref(540)
-const gameHeight = ref(958)
-
-// 設計基準尺寸 (設計稿的原始尺寸)
-const DESIGN_WIDTH = 540
-const DESIGN_HEIGHT = 958
-
-// 縮放因子
-const scaleFactorX = computed(() => gameWidth.value / DESIGN_WIDTH)
-const scaleFactorY = computed(() => gameHeight.value / DESIGN_HEIGHT)
-
-// 基礎偏移量，都要浮上來一點 (會根據縮放因子調整)
-const baseOffsetY = computed(() => -35 * scaleFactorY.value)
-// 基礎縮放，所有角色都會縮放這個值 (會根據縮放因子調整)
-const baseScale = computed(() => 0.65 * Math.min(scaleFactorX.value, scaleFactorY.value))
+// 基礎配置管理
+const {
+  gameWidth,
+  gameHeight,
+  scaleFactorX,
+  scaleFactorY,
+  baseOffsetY,
+  baseScale
+} = useBaseConfig()
 
 // PixiJS 相關實例
 let app: Application | null = null
@@ -126,11 +120,21 @@ let countdownTimer: CountdownTimer | null = null
 let rocketSpine: any = null
 
 let rocketFloatEffect: EffectState | null = null // 火箭漂浮效果
-const characters: Map<string, Character> = new Map()
 const logger = createLogger()
 
 // 獲取 PixiJS app 實例的函數
 const getApp = () => app
+
+// 角色管理
+const {
+  createCharacterWalk,
+  createCharacterJump,
+  animateCharacterWalk,
+  animateCharacterJump,
+  updateCharactersScale,
+  destroyAllCharacters,
+  waitForAllCharactersComplete
+} = useCharacters(getApp, rocketSpine)
 
 // 背景管理
 const {
@@ -148,16 +152,9 @@ const {
   updateFrontCloudScale,
   resetBackground,
   destroyBackground
-} = useBackground(getApp, gameWidth, gameHeight)
+} = useBackground(getApp)
 
-// 固定使用 funkyRocket 的 getSpineAssets 函數
-function getSpineAssets(animationName: string) {
-  return {
-    skelPath: `/funkyRocket/spine/${animationName}/${animationName}.skel`,
-    atlasPath: `/funkyRocket/spine/${animationName}/${animationName}.atlas`,
-    imagePath: `/funkyRocket/spine/${animationName}/${animationName}.png`
-  }
-}
+// 角色相關函數已移至 useCharacters hook
 
 
 // 開始火箭漂浮效果
@@ -193,325 +190,6 @@ function stopRocketFloat(): void {
   rocketFloatEffect = null
 }
 
-
-
-
-// 創建角色
-async function createCharacterWalk(type: CharacterType, id: string): Promise<Character | null> {
-  if (!app) return null
-  
-  try {
-    logger.info(`👤 創建角色: ${type} (${id})`)
-    
-    // 所有角色都使用統一的上車動畫
-    const animationName = 'walk'
-    
-    const characterAssets = getSpineAssets(animationName)
-    const spineResult = await createSpineAnimation({
-      skelPath: characterAssets.skelPath,
-      atlasPath: characterAssets.atlasPath,
-      imagePath: characterAssets.imagePath
-    })
-    
-    const spine = spineResult.spine
-    // spine.zIndex = 2 // 角色在火箭之上
-    
-    // 設定角色起始位置 - 所有角色都從正中間開始 (考慮縮放因子)
-    const scale = baseScale.value * 1.1  // 放大角色，讓它更明顯
-    const startX = gameWidth.value / 2 // 從正中間開始
-    const startY = gameHeight.value / 2 + baseOffsetY.value  // 接近地面位置 + 基礎偏移量
-    
-    logger.info(`🎯 角色起始位置: (${startX}, ${startY}), 畫面大小: ${gameWidth.value}x${gameHeight.value}`)
-    
-    // 玩家和主播需要鏡像反轉
-    const shouldFlip = type === 'player' || type === 'streamer'
-    
-    applySpineTransform(spine, {
-      x: startX,
-      y: startY,
-      scaleX: shouldFlip ? -scale : scale, // 負值表示左右反轉
-      scaleY: scale
-    })
-    
-    app.stage.addChild(spine)
-
-    const character: Character = {
-      id,
-      type,
-      spine,
-      position: { x: startX, y: startY },
-      isVisible: true
-    }
-    
-    characters.set(id, character)
-    logger.info(`✅ 角色創建成功: ${type} (${id})`)
-    
-    return character
-    
-  } catch (error) {
-    logger.error(`❌ 角色創建失敗 ${type}: ${error}`)
-    return null
-  }
-}
-
-// 角色動畫 - 上車
-async function animateCharacterWalk(character: Character, direction: 'left' | 'right'): Promise<void> {
-  if (!character.spine) return
-  
-  return new Promise<void>((resolve, reject) => {
-    try {
-      // 角色已在創建時播放 walk 動畫，這裡只需要移動
-
-      const isNpc = direction !== 'left'
-      const directionOffsetX = (isNpc ? 10 : -10) * scaleFactorX.value // 偏移量也要縮放
-
-      const animationName = isNpc ? 'others_walk' : 'me_walk'
-
-      // 播放跳躍動畫（原地跳躍）
-      playSpineAnimation(character.spine, animationName, false)
-      
-      // 移動到火箭附近的地面位置 (考慮縮放因子)
-      const targetX = gameWidth.value / 2 + directionOffsetX // 畫面水平中心點
-      const targetY = gameHeight.value / 2 + baseOffsetY.value  // 畫面中心 + 基礎偏移量
-      
-      const startX = character.position.x
-      const startY = character.position.y
-      const duration = 3000 // 3秒
-      const startTime = Date.now()
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        
-        const easeOut = 1 - Math.pow(1 - progress, 3)
-        const currentX = startX + (targetX - startX) * easeOut
-        const currentY = startY + (targetY - startY) * easeOut
-        
-        // 保持角色的反轉狀態
-        const shouldFlip = character.type === 'player' || character.type === 'streamer'
-        
-        applySpineTransform(character.spine, {
-          x: currentX,
-          y: currentY,
-          scaleX: shouldFlip ? -baseScale.value : baseScale.value,
-          scaleY: baseScale.value
-        })
-        
-        character.position.x = currentX
-        character.position.y = currentY
-        
-        if (progress < 1) requestAnimationFrame(animate)
-        else {
-          // 動畫完成，移除角色
-          if (app && app.stage.getChildIndex(character.spine) !== -1) {
-            app.stage.removeChild(character.spine)
-          }
-          characters.delete(character.id)
-          charactersOnBoard.value.push(character.type)
-          logger.info(`✅ ${character.type} 上車完成，角色已移除`)
-          
-          // 🆕 動畫完成後 resolve Promise
-          resolve()
-        }
-      }
-      
-      animate()
-      
-    } catch (error) {
-      logger.error(`❌ 角色上車動畫失敗: ${error}`)
-      reject(error)
-    }
-  })
-}
-
-// 創建文字跟隨功能
-
-async function createFollowText(
-  spine: any, 
-  startX: number, 
-  startY: number, 
-  followText: string
-): Promise<FollowTextResult> {
-  // 沒有文字或沒有 app 則返回 undefined
-  if (!followText || !app) return { textResult: undefined, boneTracker: undefined }
-
-  try {
-    // 1. 創建文字物件
-    const textResult = createPixiText({
-      text: followText,
-      fontSize: 20,
-      fill: 0xffffff,  // 白色文字
-      strokeColor: 0x000000, // 黑色描邊
-      strokeWidth: 1,
-      dropShadow: false
-    }, logger.createLogFunction())
-    
-    // 2. 暫時隱藏文字，等骨骼追蹤器計算出正確位置再顯示
-    textResult.textObject.x = startX
-    textResult.textObject.y = startY
-    textResult.textObject.anchor.set(0.5, 0.5)
-    // textResult.textObject.zIndex = 15
-    textResult.textObject.visible = false  // 先隱藏
-    app.stage.addChild(textResult.textObject)
-    app.stage.sortChildren()
-    
-    // 3. 創建骨骼追蹤器
-    const boneTracker = createBoneTracker({
-      textObject: textResult.textObject,
-      spine,
-      textOffset: { x: 0, y: 60 }, // 文字在動畫下方
-      // enableDebugLog: true,
-      // debugLogFrequency: 0.3
-    })
-    
-    // 4. 不立即開始追蹤，等動畫播放時再開始
-    logger.info('✅ 文字跟隨創建成功（等待動畫開始）')
-    
-    return { textResult, boneTracker }
-    
-  } catch (error) {
-    logger.error(`❌ 文字跟隨創建失敗: ${error}`)
-    return { textResult: undefined, boneTracker: undefined }
-  }
-}
-
-// 創建下車角色（使用 jump 動畫）
-async function createCharacterJump(type: CharacterType, id: string, followText: string = ''): Promise<Character | null> {
-  if (!app) return null
-  
-  try {
-    logger.info(`🪂 創建下車角色: ${type} (${id})`)
-    
-    // 下車使用 jump 動畫
-    const animationName = 'jump'
-    
-    const characterAssets = getSpineAssets(animationName)
-    const spineResult = await createSpineAnimation({
-      skelPath: characterAssets.skelPath,
-      atlasPath: characterAssets.atlasPath,
-      imagePath: characterAssets.imagePath
-    })
-    
-    const spine = spineResult.spine
-    // spine.zIndex = 2 // 角色在火箭之上
-
-    // 從火箭的實際位置開始 (考慮縮放因子)
-    const scale = baseScale.value
-    const startX = rocketSpine ? rocketSpine.x : gameWidth.value / 2
-    const startY = rocketSpine ? rocketSpine.y : gameHeight.value / 2 + baseOffsetY.value
-    
-    applySpineTransform(spine, {
-      x: startX,
-      y: startY,
-      scaleX: scale,
-      scaleY: scale
-    })
-    
-    app.stage.addChild(spine)
-    
-    // 為角色創建文字跟隨（如果需要）
-    const { textResult, boneTracker } = await createFollowText(spine, startX, startY, followText)
-    
-    const character: Character = {
-      id,
-      type,
-      spine,
-      position: { x: startX, y: startY },
-      isVisible: true,
-      textResult,
-      boneTracker
-    }
-    
-    characters.set(id, character)
-    logger.info(`✅ 下車角色創建成功: ${type} (${id})`)
-    
-    return character
-    
-  } catch (error) {
-    logger.error(`❌ 下車角色創建失敗 ${type}: ${error}`)
-    return null
-  }
-}
-
-
-
-
-
-// 角色動畫 - 下車（跳躍）- 原地跳躍
-async function animateCharacterJump(character: Character): Promise<void> {
-  if (!character.spine || !app) return
-  
-  try {
-    logger.info(`🎯 開始 ${character.type} 下車動畫，起始位置: (${character.position.x}, ${character.position.y})`)
-    
-    const isNpc = character.type === 'npc'
-    const randomAnimationNumber = ['', 2, 3][getRandomNum(0, 3)]
-    const animationName = isNpc ? `jump_others${randomAnimationNumber}` : `jump_me${randomAnimationNumber}`
-
-    // 播放跳躍動畫（原地跳躍）
-    playSpineAnimation(character.spine, animationName, false)
-
-    const scale = baseScale.value
-    
-    // 設置 Spine 的縮放，但保持位置不變
-    applySpineTransform(character.spine, {
-      x: character.spine.x,  // 保持原位置
-      y: character.spine.y,  // 保持原位置
-      scaleX: isNpc ? -scale : scale,
-      scaleY: scale
-    })
-    
-    // 啟動骨骼追蹤器並顯示文字
-    if (character.boneTracker && character.textResult) {
-      character.boneTracker.startTracking()
-      
-      // 等一個 frame 讓骨骼追蹤器計算位置，然後顯示文字
-      requestAnimationFrame(() => {
-        character.textResult!.textObject.visible = true
-      })
-    }
-    
-    const duration = 3000 // 3秒跳躍動畫
-    const startTime = Date.now()
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      
-      // 檢查動畫是否完成
-      if (progress < 1) requestAnimationFrame(animate)
-      else {
-        // 動畫完成，清理資源
-        if (character.boneTracker) {
-          character.boneTracker.stopTracking()
-          character.boneTracker.dispose()
-        }
-        
-        if (character.textResult && app && app.stage.getChildIndex(character.textResult.textObject) !== -1) {
-          app.stage.removeChild(character.textResult.textObject)
-          character.textResult.destroy()
-        }
-        
-        // 移除 Spine
-        if (app && app.stage.getChildIndex(character.spine) !== -1) {
-          app.stage.removeChild(character.spine)
-        }
-        
-        characters.delete(character.id)
-        const index = charactersOnBoard.value.indexOf(character.type)
-        if (index > -1) charactersOnBoard.value.splice(index, 1)
-
-        logger.info(`✅ ${character.type} 下車完成`)
-      }
-    }
-    
-    animate()
-    
-  } catch (error) {
-    logger.error(`❌ 角色下車動畫失敗: ${error}`)
-  }
-}
-
 // 場景初始化
 async function initScene(): Promise<void> {
   if (!canvasRef.value) {
@@ -544,11 +222,10 @@ async function initScene(): Promise<void> {
 
     // 5. 創建火箭 Spine 動畫
     logger.info('開始創建火箭 Spine 動畫...')
-    const rocketAssets = getSpineAssets('rocket')
     const spineResult = await createSpineAnimation({
-      skelPath: rocketAssets.skelPath,
-      atlasPath: rocketAssets.atlasPath,
-      imagePath: rocketAssets.imagePath
+      skelPath: '/funkyRocket/spine/rocket/rocket.skel',
+      atlasPath: '/funkyRocket/spine/rocket/rocket.atlas',
+      imagePath: '/funkyRocket/spine/rocket/rocket.png'
     })
     
     rocketSpine = spineResult.spine
@@ -676,10 +353,7 @@ async function launchRocket(): Promise<void> {
   stopBGM('bgm_open')
   
   // 等待所有上車動畫完成 - 檢查是否還有角色在移動中
-  while (characters.size > 0) {
-    logger.info(`⏳ 等待上車動畫完成，剩餘角色: ${characters.size}`)
-    await new Promise(resolve => setTimeout(resolve, 200))
-  }
+  await waitForAllCharactersComplete()
   
   try {
     // 1. 發射準備階段 - 播放 rocket_shake 動畫
@@ -835,12 +509,7 @@ async function resetGame(): Promise<void> {
   stopAllAudio() // 停止所有背景音樂
   stopRocketFloat() // 停止火箭漂浮效果
   // 清理所有角色
-  for (const character of characters.values()) {
-    if (app && app.stage.getChildIndex(character.spine) !== -1) {
-      app.stage.removeChild(character.spine)
-    }
-  }
-  characters.clear()
+  destroyAllCharacters()
   
   // 重置所有遊戲狀態
   resetGameState()
@@ -893,22 +562,7 @@ function cleanup(): void {
   }
   
   // 清理所有角色
-  for (const character of characters.values()) {
-    if (character.boneTracker) {
-      character.boneTracker.stopTracking()
-      character.boneTracker.dispose()
-    }
-    
-    if (character.textResult && app && app.stage.getChildIndex(character.textResult.textObject) !== -1) {
-      app.stage.removeChild(character.textResult.textObject)
-      character.textResult.destroy()
-    }
-    
-    if (app && app.stage.getChildIndex(character.spine) !== -1) {
-      app.stage.removeChild(character.spine)
-    }
-  }
-  characters.clear()
+  destroyAllCharacters()
   
   // 清理背景和特效
   destroyBackground()
@@ -993,20 +647,7 @@ function updateGameContentScale(): void {
 
 // 背景縮放更新函數已移至 useBackground hook
 
-// 更新現有角色縮放
-function updateCharactersScale(): void {
-  for (const character of characters.values()) {
-    if (character.spine) {
-      const isNpc = character.type === 'npc'
-      applySpineTransform(character.spine, {
-        x: character.spine.x, // 保持當前位置
-        y: character.spine.y, // 保持當前位置  
-        scaleX: isNpc ? -baseScale.value : baseScale.value,
-        scaleY: baseScale.value
-      })
-    }
-  }
-}
+// 角色縮放更新函數已移至 useCharacters hook
 
 
 

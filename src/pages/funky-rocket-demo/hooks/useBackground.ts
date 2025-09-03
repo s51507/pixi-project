@@ -3,14 +3,18 @@ import type { Sprite } from 'pixi.js'
 import { Assets } from 'pixi.js'
 import * as PIXI from 'pixi.js'
 import { createLogger } from '@/utils/pixi/logger'
+import { useBaseConfig } from './useBaseConfig'
 
 const logger = createLogger()
 
-export const useBackground = (
-  getApp: () => any, 
-  gameWidth: any, 
-  gameHeight: any
-) => {
+export const useBackground = (getApp: () => any) => {
+  // 基礎配置
+  const {
+    gameWidth,
+    gameHeight,
+    scaleFactorX,
+    scaleFactorY
+  } = useBaseConfig()
   // 背景精靈實例
   let defaultBackgroundSprite: Sprite | null = null
   let cycleBackgroundSprites: Sprite[] = [] // 多個循環背景精靈
@@ -21,8 +25,6 @@ export const useBackground = (
   const scrollSpeed = ref(5) // 滾動速度 (初始值)
   
   // 計算屬性：滾動相關參數（根據縮放因子調整）
-  const scaleFactorX = computed(() => gameWidth.value / 540)
-  const scaleFactorY = computed(() => gameHeight.value / 958)
   const baseScrollSpeed = computed(() => 5 * Math.min(scaleFactorX.value, scaleFactorY.value))
   const speedIncrease = computed(() => 0.02 * Math.min(scaleFactorX.value, scaleFactorY.value))
   const maxScrollSpeed = computed(() => 20 * Math.min(scaleFactorX.value, scaleFactorY.value))
