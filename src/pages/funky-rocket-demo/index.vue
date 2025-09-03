@@ -63,35 +63,10 @@ import {
 import { createLogger } from '@/utils/pixi/logger'
 import { CountdownTimer, AudioManager, type AudioAssets } from '@/utils/pixi/scene'
 import { createFloatEffect, type EffectState } from '@/utils/pixi/effects'
-import { createBoneTracker, type BoneTracker } from '@/utils/pixi/boneTracker'
-import { createPixiText, type CreateTextResult } from '@/utils/pixi/text'
+import { createBoneTracker } from '@/utils/pixi/boneTracker'
+import { createPixiText } from '@/utils/pixi/text'
 import { useAudioStore } from '@/stores/audio'
-
-// 遊戲狀態枚舉
-enum GameState {
-  IDLE = 'IDLE',
-  BOARDING = 'BOARDING',
-  COUNTDOWN = 'COUNTDOWN',
-  LAUNCHING = 'LAUNCHING',
-  FLYING = 'FLYING',
-  DISEMBARKING = 'DISEMBARKING',
-  EXPLODING = 'EXPLODING',
-  COMPLETED = 'COMPLETED'
-}
-
-// 角色類型
-type CharacterType = 'player' | 'streamer' | 'npc'
-
-// 角色數據結構
-interface Character {
-  id: string
-  type: CharacterType
-  spine: any
-  position: { x: number; y: number }
-  isVisible: boolean
-  textResult?: CreateTextResult // 文字物件（可選）
-  boneTracker?: BoneTracker // 骨骼追蹤器（可選）
-}
+import { GameState, type CharacterType, type Character, type FollowTextResult } from './types'
 
 // 注意：此頁面固定使用 funkyRocket 素材包
 
@@ -580,10 +555,6 @@ async function animateCharacterWalk(character: Character, direction: 'left' | 'r
 }
 
 // 創建文字跟隨功能
-interface FollowTextResult {
-  textResult?: CreateTextResult
-  boneTracker?: BoneTracker
-}
 
 async function createFollowText(
   spine: any, 
